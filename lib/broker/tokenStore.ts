@@ -46,3 +46,13 @@ export async function isTokenValid(uid: string): Promise<boolean> {
   if (!token) return false;
   return token.expiresAtDate.getTime() > Date.now();
 }
+
+// getting token for pcr price feed and broker api
+export async function getAnyValidBrokerToken() {
+  const ds = await getDataSource();
+  const repo = ds.getMongoRepository(BrokerToken);
+  const tokens = await repo.find();
+  const valid = tokens.filter((t) => t.expiresAtDate.getTime() > Date.now());
+  valid.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  return valid[0] ?? null;
+}

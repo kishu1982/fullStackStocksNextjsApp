@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   const rawText = await res.text();
   console.log("SearchScrip status:", res.status);
-  console.log("SearchScrip raw body:", rawText);
+  // console.log("SearchScrip raw body:", rawText);
 
   let data: any;
   try {
