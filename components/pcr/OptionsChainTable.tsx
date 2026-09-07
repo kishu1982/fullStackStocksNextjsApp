@@ -46,7 +46,9 @@ export default function OptionsChainTable({
     <div className="border-t border-slate-800 bg-slate-950/60 p-4 space-y-4">
       {/* Expiry PCR Stats Header */}
       <div className="grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-4 text-xs">
-        <div className={`px-3 py-2 rounded-xl border flex items-center gap-2 ${pcrBadgeColor}`}>
+        <div
+          className={`px-3 py-2 rounded-xl border flex items-center gap-2 ${pcrBadgeColor}`}
+        >
           <span className="text-[10px] uppercase font-sans tracking-wider text-slate-400 font-semibold">
             Expiry PCR:
           </span>
@@ -77,7 +79,9 @@ export default function OptionsChainTable({
         <table className="w-full text-xs font-mono border-collapse text-left">
           <thead>
             <tr className="bg-slate-800/90 text-slate-400 uppercase tracking-wider text-[10px] font-sans border-b border-slate-800">
-              <th className="p-2.5 text-right text-emerald-400 font-semibold">CE OI</th>
+              <th className="p-2.5 text-right text-emerald-400 font-semibold">
+                CE OI
+              </th>
               <th className="p-2.5 text-right font-semibold">CE LTP</th>
               <th className="p-2.5 text-right font-semibold">CE Chg%</th>
               <th className="p-2.5 text-center font-bold text-cyan-400 bg-slate-800/60 border-x border-slate-700">
@@ -85,7 +89,9 @@ export default function OptionsChainTable({
               </th>
               <th className="p-2.5 text-left font-semibold">PE Chg%</th>
               <th className="p-2.5 text-left font-semibold">PE LTP</th>
-              <th className="p-2.5 text-left text-rose-400 font-semibold">PE OI</th>
+              <th className="p-2.5 text-left text-rose-400 font-semibold">
+                PE OI
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/50">
@@ -109,10 +115,18 @@ export default function OptionsChainTable({
                   </td>
                   <td
                     className={`p-2.5 text-right ${
-                      ceChg > 0 ? "text-emerald-400 font-semibold" : ceChg < 0 ? "text-rose-400 font-semibold" : "text-slate-400"
+                      ceChg > 0
+                        ? "text-emerald-400 font-semibold"
+                        : ceChg < 0
+                          ? "text-rose-400 font-semibold"
+                          : "text-slate-400"
                     }`}
                   >
-                    {ceTick?.pc ? (ceChg > 0 ? `+${ceTick.pc}` : ceTick.pc) : "—"}
+                    {ceTick?.pc
+                      ? ceChg > 0
+                        ? `+${ceTick.pc}`
+                        : ceTick.pc
+                      : "—"}
                   </td>
 
                   {/* Strike Price Center Column */}
@@ -122,10 +136,18 @@ export default function OptionsChainTable({
 
                   <td
                     className={`p-2.5 text-left ${
-                      peChg > 0 ? "text-emerald-400 font-semibold" : peChg < 0 ? "text-rose-400 font-semibold" : "text-slate-400"
+                      peChg > 0
+                        ? "text-emerald-400 font-semibold"
+                        : peChg < 0
+                          ? "text-rose-400 font-semibold"
+                          : "text-slate-400"
                     }`}
                   >
-                    {peTick?.pc ? (peChg > 0 ? `+${peTick.pc}` : peTick.pc) : "—"}
+                    {peTick?.pc
+                      ? peChg > 0
+                        ? `+${peTick.pc}`
+                        : peTick.pc
+                      : "—"}
                   </td>
                   <td className="p-2.5 text-left text-slate-200">
                     {peTick?.lp ?? "—"}
@@ -142,4 +164,3 @@ export default function OptionsChainTable({
     </div>
   );
 }
-

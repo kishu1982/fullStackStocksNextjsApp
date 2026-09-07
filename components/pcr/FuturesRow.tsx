@@ -25,8 +25,8 @@ export default function FuturesRow({
     changePercent > 0
       ? "text-emerald-400 font-semibold"
       : changePercent < 0
-      ? "text-rose-400 font-semibold"
-      : "text-slate-400";
+        ? "text-rose-400 font-semibold"
+        : "text-slate-400";
 
   return (
     <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/80 shadow-md transition-all">
@@ -43,7 +43,10 @@ export default function FuturesRow({
               {future.tradingSymbol}
             </div>
             <div className="text-[11px] text-slate-400 font-sans">
-              Expiry: <span className="font-mono text-slate-300 font-medium">{future.expiry}</span>
+              Expiry:{" "}
+              <span className="font-mono text-slate-300 font-medium">
+                {future.expiry}
+              </span>
             </div>
           </div>
         </div>
@@ -54,7 +57,7 @@ export default function FuturesRow({
               {tick?.lp ? Number(tick.lp).toFixed(2) : "—"}
             </div>
             <div className={`text-xs font-mono ${changeColor}`}>
-              {changePercent > 0 ? `+${tick?.pc}` : tick?.pc ?? "0.00"}%
+              {changePercent > 0 ? `+${tick?.pc}` : (tick?.pc ?? "0.00")}%
             </div>
           </div>
 
@@ -63,8 +66,18 @@ export default function FuturesRow({
               open ? "rotate-180 text-cyan-400 border-cyan-500/40" : ""
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
@@ -81,4 +94,3 @@ export default function FuturesRow({
     </div>
   );
 }
-
