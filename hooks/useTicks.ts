@@ -10,10 +10,11 @@ export function useTicks(exch: string, tokens: string[]) {
   const tokenKey = tokens.join(",");
 
   useEffect(() => {
-    if (!exch || tokens.length === 0) return;
+    const validTokens = tokens.filter(Boolean);
+    if (!exch || validTokens.length === 0) return;
 
     const unsubscribe = brokerSocketManager.onTick((msg: Tick) => {
-      if (msg.e === exch && msg.tk && tokens.includes(String(msg.tk))) {
+      if (msg.e === exch && msg.tk && validTokens.includes(String(msg.tk))) {
         setTicks((prev) => ({
           ...prev,
           [String(msg.tk)]: { ...prev[String(msg.tk)], ...msg },
@@ -21,11 +22,11 @@ export function useTicks(exch: string, tokens: string[]) {
       }
     });
 
-    tokens.forEach((token) => brokerSocketManager.subscribe(exch, token));
+    validTokens.forEach((token) => brokerSocketManager.subscribe(exch, token));
 
     return () => {
       unsubscribe();
-      tokens.forEach((token) => brokerSocketManager.unsubscribe(exch, token));
+      validTokens.forEach((token) => brokerSocketManager.unsubscribe(exch, token));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exch, tokenKey]);

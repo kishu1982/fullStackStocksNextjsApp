@@ -82,7 +82,7 @@ export default function DashboardContent() {
         }).format(new Date(timestamp));
   }
 
-  const ticks = useTicks("NFO", [niftyToken ?? ""]);
+  const ticks = useTicks("NFO", niftyToken ? [niftyToken] : []);
   const tick = niftyToken ? ticks[niftyToken] : null;
 
   if (!session) {

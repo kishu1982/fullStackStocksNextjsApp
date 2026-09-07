@@ -63,25 +63,6 @@ const Menu = () => {
       ),
     },
     {
-      name: "Broker Access",
-      href: "/login",
-      icon: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-          />
-        </svg>
-      ),
-    },
-    {
       name: "PCR Details",
       href: "/dashboard/pcr-details",
       icon: (
@@ -96,6 +77,25 @@ const Menu = () => {
             strokeLinejoin="round"
             strokeWidth="2"
             d="M9 17v-6h2v6H9zm4 0V7h2v10h-2zm4 0v-4h2v4h-2zM5 20h14a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v14a1 1 0 001 1z"
+          />
+        </svg>
+      ),
+    },
+    {
+      name: "Broker Access",
+      href: "/login",
+      icon: (
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
           />
         </svg>
       ),

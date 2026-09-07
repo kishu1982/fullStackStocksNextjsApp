@@ -48,7 +48,7 @@ class ServerBrokerFeed {
       if (msg.t === "ck" || msg.t === "ak") {
         if (msg.s && String(msg.s).toUpperCase() === "OK") {
           this.startHeartbeat();
-          this.subscribed.forEach((k) => this.send({ t: "t", k }));
+          this.flushSubscribed();
           console.log("✅ PCR server feed authenticated");
         } else {
           console.error("❌ PCR server feed auth rejected:", msg);
@@ -78,12 +78,47 @@ class ServerBrokerFeed {
     const key = `${exch}|${token}`;
     if (this.subscribed.has(key)) return;
     this.subscribed.add(key);
-    this.send({ t: "t", k: key });
+
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.pendingQueue.push(key);
+      this.scheduleQueueFlush();
+    }
+  }
+
+  private pendingQueue: string[] = [];
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private scheduleQueueFlush() {
+    if (this.flushTimer) return;
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      this.flushPendingQueue();
+    }, 20);
+  }
+
+  private flushPendingQueue() {
+    if (this.pendingQueue.length === 0 || this.ws?.readyState !== WebSocket.OPEN) return;
+    const batch = this.pendingQueue.splice(0, 50);
+    this.send({ t: "t", k: batch.join("#") });
+    if (this.pendingQueue.length > 0) {
+      this.scheduleQueueFlush();
+    }
+  }
+
+  private flushSubscribed() {
+    const allKeys = Array.from(this.subscribed);
+    this.pendingQueue = allKeys;
+    this.flushPendingQueue();
   }
 
   private unsubscribeAll() {
-    this.subscribed.forEach((k) => this.send({ t: "u", k }));
+    const keys = Array.from(this.subscribed);
+    for (let i = 0; i < keys.length; i += 50) {
+      const chunk = keys.slice(i, i + 50);
+      this.send({ t: "u", k: chunk.join("#") });
+    }
     this.subscribed.clear();
+    this.pendingQueue = [];
   }
 
   private send(payload: object) {
