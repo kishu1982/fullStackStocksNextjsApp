@@ -618,7 +618,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
             }}
           >
             <div className="text-slate-400 border-b border-slate-800 pb-1.5 mb-2">
-              {formatIST(tooltip.timestamp)}
+              {formatIndiaTime(tooltip.timestamp)}
             </div>
 
             <div className="space-y-1">
