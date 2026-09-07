@@ -25,7 +25,9 @@ export class PcrSnapshot {
   expiry!: string; // e.g. "15-SEP-2026" — matches broker's `exd` format
 
   @Column()
-  timestamp!: Date; // exact capture moment
+  timestamp!: { type: Date; required: true };
+  // exact capture moment
+  // timestamp!: Date; // exact capture moment
 
   @Column()
   dateKeyIST!: string; // "YYYY-MM-DD" in IST — used for the 3-day retention cleanup

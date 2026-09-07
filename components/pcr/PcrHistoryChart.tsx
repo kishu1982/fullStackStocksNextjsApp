@@ -34,9 +34,32 @@ interface TooltipData {
   totalPutOI?: number;
   maxPainStrike?: number;
 }
+const INDIA_TIME_ZONE = "Asia/Kolkata";
 
-const IST_FORMATTER = new Intl.DateTimeFormat("en-IN", {
-  timeZone: "Asia/Kolkata",
+const INDIA_TIME_FORMATTER = new Intl.DateTimeFormat("en-IN", {
+  timeZone: INDIA_TIME_ZONE,
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+// const IST_FORMATTER = new Intl.DateTimeFormat("en-IN", {
+//   timeZone: "Asia/Kolkata",
+//   day: "2-digit",
+//   month: "short",
+//   year: "numeric",
+//   hour: "2-digit",
+//   minute: "2-digit",
+//   second: "2-digit",
+//   hour12: false,
+// });
+
+const INDIA_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-IN", {
+  timeZone: INDIA_TIME_ZONE,
   day: "2-digit",
   month: "short",
   year: "numeric",
@@ -50,8 +73,11 @@ function toChartTime(timestamp: string): UTCTimestamp {
   return Math.floor(new Date(timestamp).getTime() / 1000) as UTCTimestamp;
 }
 
-function formatIST(timestamp: string) {
-  return `${IST_FORMATTER.format(new Date(timestamp))} IST`;
+// function formatIST(timestamp: string) {
+//   return `${IST_FORMATTER.format(new Date(timestamp))} IST`;
+// }
+function formatIndiaTime(timestamp: string | Date) {
+  return `${INDIA_DATE_TIME_FORMATTER.format(new Date(timestamp))} IST`;
 }
 
 export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
@@ -170,7 +196,8 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
           const date =
             typeof time === "number" ? new Date(time * 1000) : new Date(time);
 
-          return IST_FORMATTER.format(date);
+          // return IST_FORMATTER.format(date);
+          return INDIA_TIME_FORMATTER.format(date);
         },
       },
     });
