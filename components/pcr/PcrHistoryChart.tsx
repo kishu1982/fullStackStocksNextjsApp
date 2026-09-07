@@ -377,17 +377,25 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
     if (!pcrSeries || !priceSeries || !chart) return;
 
+    const timeScale = chart.timeScale();
+
+    /*
+     * Empty data
+     */
     if (!data || data.length === 0) {
       pcrSeries.setData([]);
       priceSeries.setData([]);
       return;
     }
 
+    /*
+     * Sort oldest -> newest
+     */
     const sortedData = [...data]
       .filter(
         (row) =>
-          Number.isFinite(row.pcr) &&
-          Number.isFinite(row.futuresLTP) &&
+          Number.isFinite(Number(row.pcr)) &&
+          Number.isFinite(Number(row.futuresLTP)) &&
           !Number.isNaN(new Date(row.timestamp).getTime()),
       )
       .sort(
@@ -397,16 +405,13 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
     /*
      * Remove duplicate timestamps.
-     *
-     * Lightweight Charts requires unique,
-     * ascending timestamps.
      */
     const uniqueData: Row[] = [];
 
     const seen = new Set<number>();
 
     for (const row of sortedData) {
-      const time = toChartTime(row.timestamp);
+      const time = Number(toChartTime(row.timestamp));
 
       if (seen.has(time)) continue;
 
@@ -414,47 +419,95 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       uniqueData.push(row);
     }
 
-    const pcrData = uniqueData.map((row) => ({
-      time: toChartTime(row.timestamp),
-      value: row.pcr,
-    }));
-
-    const priceData = uniqueData.map((row) => ({
-      time: toChartTime(row.timestamp),
-      value: row.futuresLTP,
-    }));
-
-    /*
-     * First load.
-     */
-    if (!pcrSeries.data().length) {
-      pcrSeries.setData(pcrData);
-      priceSeries.setData(priceData);
-
-      chart.timeScale().fitContent();
-
+    if (uniqueData.length === 0) {
+      pcrSeries.setData([]);
+      priceSeries.setData([]);
       return;
     }
 
     /*
-     * Existing chart.
-     *
-     * Use update() for the newest point.
-     * This prevents unnecessary full chart replacement.
+     * ---------------------------------------------------------
+     * SAVE CURRENT VIEW
+     * ---------------------------------------------------------
      */
-    const latest = uniqueData[uniqueData.length - 1];
+    const oldRange = timeScale.getVisibleLogicalRange();
 
-    if (latest) {
-      pcrSeries.update({
-        time: toChartTime(latest.timestamp),
-        value: latest.pcr,
-      });
+    let followLatest = true;
 
-      priceSeries.update({
-        time: toChartTime(latest.timestamp),
-        value: latest.futuresLTP,
-      });
+    if (oldRange) {
+      const oldDataCount = pcrSeries.data().length;
+
+      /*
+       * Only automatically follow the latest point if
+       * the user is already near the right edge.
+       */
+      followLatest = oldRange.to >= oldDataCount - 5;
     }
+
+    /*
+     * ---------------------------------------------------------
+     * PREPARE NEW DATA
+     * ---------------------------------------------------------
+     */
+    const pcrData = uniqueData.map((row) => ({
+      time: toChartTime(row.timestamp),
+      value: Number(row.pcr),
+    }));
+
+    const priceData = uniqueData.map((row) => ({
+      time: toChartTime(row.timestamp),
+      value: Number(row.futuresLTP),
+    }));
+
+    /*
+     * ---------------------------------------------------------
+     * IMPORTANT:
+     *
+     * Your API returns the complete history every 10 seconds.
+     *
+     * Therefore setData() is safer here than update().
+     * ---------------------------------------------------------
+     */
+    pcrSeries.setData(pcrData);
+    priceSeries.setData(priceData);
+
+    /*
+     * ---------------------------------------------------------
+     * FIRST LOAD
+     * ---------------------------------------------------------
+     */
+    if (!oldRange) {
+      timeScale.fitContent();
+      return;
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * USER WAS FOLLOWING LIVE DATA
+     * ---------------------------------------------------------
+     */
+    if (followLatest) {
+      timeScale.scrollToRealTime();
+      return;
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * USER WAS LOOKING AT HISTORICAL DATA
+     *
+     * Keep their current zoom/pan position.
+     * ---------------------------------------------------------
+     */
+    const maxIndex = uniqueData.length - 1;
+
+    const from = Math.max(0, Math.min(oldRange.from, maxIndex));
+
+    const to = Math.max(from + 1, Math.min(oldRange.to, maxIndex));
+
+    timeScale.setVisibleLogicalRange({
+      from,
+      to,
+    });
   }, [data]);
 
   /*
