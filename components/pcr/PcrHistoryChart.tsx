@@ -170,8 +170,23 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
       timeScale: {
         borderColor: "#334155",
+
         timeVisible: true,
         secondsVisible: true,
+
+        // Force the bottom time-axis labels to display IST.
+        tickMarkFormatter: (time: any) => {
+          const date =
+            typeof time === "number" ? new Date(time * 1000) : new Date(time);
+
+          return new Intl.DateTimeFormat("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          }).format(date);
+        },
 
         rightOffset: 5,
 
