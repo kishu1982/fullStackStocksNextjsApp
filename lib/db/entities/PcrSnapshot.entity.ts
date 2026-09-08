@@ -22,18 +22,19 @@ export class PcrSnapshot {
   exchange!: string; // NFO / BFO
 
   @Column()
-  expiry!: string; // e.g. "15-SEP-2026" — matches broker's `exd` format
+  expiry!: string; // e.g. "15-SEP-2026"
 
   @Column()
-  timestamp!: { type: Date; required: true };
-  // exact capture moment
-  // timestamp!: Date; // exact capture moment
+  timestamp!: Date;
+  // Exact capture moment.
+  // MongoDB stores this as an absolute BSON Date.
 
   @Column()
-  dateKeyIST!: string; // "YYYY-MM-DD" in IST — used for the 3-day retention cleanup
+  dateKeyIST!: string;
+  // YYYY-MM-DD in IST
 
   @Column()
-  pcr!: number; // totalPutOI / totalCallOI
+  pcr!: number;
 
   @Column()
   totalCallOI!: number;
@@ -45,13 +46,13 @@ export class PcrSnapshot {
   maxPainStrike!: number;
 
   @Column()
-  futuresLTP!: number; // underlying future price used as "spot" for this expiry
+  futuresLTP!: number;
 
   @Column()
   futuresToken!: string;
 
   @Column({ nullable: true })
-  futuresExpiryUsed?: string; // which future contract's LTP was actually used
+  futuresExpiryUsed?: string;
 
   @CreateDateColumn()
   createdAt!: Date;
