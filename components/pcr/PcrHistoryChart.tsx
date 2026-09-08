@@ -866,7 +866,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
         {/* CUSTOM TOOLTIP */}
         {tooltip.visible && (
           <div
-            className="pointer-events-none absolute z-50 w-[235px] rounded-lg border border-slate-700 bg-slate-950/95 shadow-2xl backdrop-blur-sm px-3 py-2.5 text-[11px] font-mono"
+            className="pointer-events-none absolute z-50 w-[235px] rounded-lg border border-slate-700 bg-slate-950/45 shadow-2xl backdrop-blur-sm px-3 py-2.5 text-[11px] font-mono"
             style={{
               left: tooltip.x,
               top: tooltip.y,
