@@ -53,7 +53,15 @@ export default function FuturesRow({
 
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="text-right">
-            <div className="font-mono font-bold text-slate-100 text-sm sm:text-base">
+            <div
+              className={`font-mono font-bold text-sm sm:text-base ${
+                changePercent > 0
+                  ? "text-emerald-400"
+                  : changePercent < 0
+                    ? "text-rose-400"
+                    : "text-slate-100"
+              }`}
+            >
               {tick?.lp ? Number(tick.lp).toFixed(2) : "—"}
             </div>
             <div className={`text-xs font-mono ${changeColor}`}>

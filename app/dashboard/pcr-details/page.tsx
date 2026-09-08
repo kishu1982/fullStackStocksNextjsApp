@@ -133,7 +133,7 @@ export default function PcrDetailsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard
               label="PCR"
-              value={latest ? latest.pcr.toFixed(2) : "—"}
+              value={latest ? latest.pcr.toFixed(5) : "—"}
               accent={latest && latest.pcr >= 1 ? "emerald" : "rose"}
             />
             <StatCard

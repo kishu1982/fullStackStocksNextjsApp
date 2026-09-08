@@ -5,9 +5,11 @@ import {
   createChart,
   LineSeries,
   CrosshairMode,
+  createSeriesMarkers,
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
+  type SeriesMarker,
 } from "lightweight-charts";
 
 interface Row {
@@ -82,6 +84,9 @@ function formatIndiaTime(timestamp: string | Date) {
 
 export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const markersRef = useRef<ReturnType<typeof createSeriesMarkers> | null>(
+    null,
+  );
 
   const chartRef = useRef<IChartApi | null>(null);
   const pcrSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -192,12 +197,18 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       },
 
       localization: {
+        // timeFormatter: (time: any) => {
+        //   const date =
+        //     typeof time === "number" ? new Date(time * 1000) : new Date(time);
+
+        //   // return IST_FORMATTER.format(date);
+        //   return INDIA_TIME_FORMATTER.format(date);
+        // },
         timeFormatter: (time: any) => {
           const date =
             typeof time === "number" ? new Date(time * 1000) : new Date(time);
 
-          // return IST_FORMATTER.format(date);
-          return INDIA_TIME_FORMATTER.format(date);
+          return `${INDIA_TIME_FORMATTER.format(date)} IST`;
         },
       },
     });
@@ -216,7 +227,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
       priceFormat: {
         type: "price",
-        precision: 2,
+        precision: 4,
         minMove: 0.01,
       },
 
@@ -254,6 +265,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
     pcrSeriesRef.current = pcrSeries;
     priceSeriesRef.current = priceSeries;
+    priceSeriesRef.current = priceSeries; // for showing signal
 
     /*
      * ---------------------------------------------------------
@@ -355,6 +367,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
 
+      markersRef.current = null;
       chart.remove();
 
       chartRef.current = null;
@@ -459,6 +472,53 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       value: Number(row.futuresLTP),
     }));
 
+    // to show bullish bearish signal as per movement of pcr and price
+    const signalMarkers: SeriesMarker<UTCTimestamp>[] = [];
+
+    for (let i = 1; i < uniqueData.length; i++) {
+      const previous = uniqueData[i - 1];
+      const current = uniqueData[i];
+
+      const pcrIncreasing = current.pcr > previous.pcr;
+      const pcrDecreasing = current.pcr < previous.pcr;
+
+      const priceIncreasing = current.futuresLTP > previous.futuresLTP;
+
+      const priceDecreasing = current.futuresLTP < previous.futuresLTP;
+
+      let signal: "bullish" | "bearish" | null = null;
+
+      // PCR ↑ + Price ↑ = Bullish
+      if (pcrIncreasing && priceIncreasing) {
+        signal = "bullish";
+      }
+
+      // PCR ↓ + Price ↓ = Bearish
+      else if (pcrDecreasing && priceDecreasing) {
+        signal = "bearish";
+      }
+
+      // PCR ↓ + Price ↑ = Bullish
+      else if (pcrDecreasing && priceIncreasing) {
+        signal = "bullish";
+      }
+
+      // PCR ↑ + Price ↓ = Bearish
+      else if (pcrIncreasing && priceDecreasing) {
+        signal = "bearish";
+      }
+
+      if (signal) {
+        signalMarkers.push({
+          time: toChartTime(current.timestamp),
+          position: signal === "bullish" ? "belowBar" : "aboveBar",
+          color: signal === "bullish" ? "#22c55e" : "#ef4444",
+          shape: signal === "bullish" ? "arrowUp" : "arrowDown",
+          text: signal === "bullish" ? "BULL" : "BEAR",
+        });
+      }
+    }
+
     /*
      * ---------------------------------------------------------
      * IMPORTANT:
@@ -470,6 +530,9 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
      */
     pcrSeries.setData(pcrData);
     priceSeries.setData(priceData);
+    markersRef.current?.setMarkers(signalMarkers);
+    // signal maker
+    const markers = createSeriesMarkers(priceSeries, signalMarkers);
 
     /*
      * ---------------------------------------------------------
@@ -679,7 +742,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
                 <span className="text-cyan-400">PCR</span>
 
                 <span className="text-white font-bold">
-                  {tooltip.pcr?.toFixed(3)}
+                  {tooltip.pcr?.toFixed(5)}
                 </span>
               </div>
 
