@@ -46,7 +46,7 @@ function toInstrument(row: any): Instrument {
 // by only ever loading one symbol's near-dated contracts at a time.
 
 // const TRACKED_EXPIRY_WINDOW_DAYS = 30;
-const TRACKED_MONTHLY_EXPIRIES = 2;
+const TRACKED_MONTHLY_EXPIRIES = 1;
 
 // Strikes to keep on EACH side of the ATM strike, per expiry. This is the
 // main lever for staying under the broker's ~3000 subscribed-script cap:
@@ -55,13 +55,13 @@ const TRACKED_MONTHLY_EXPIRIES = 2;
 // across every expiry ever listed (18 expiries × 100+ strikes for NIFTY
 // alone) → 9,453 tokens on one connection, which the broker's WS
 // self-protected against by dropping the connection in a loop.
-const STRIKES_EACH_SIDE = 50;
+const STRIKES_EACH_SIDE = 2000;
 
 // Hard safety ceiling matching the broker's documented WS subscription
 // limit. We only ever WARN if we exceed it (rather than silently
 // truncating symbols), so it's obvious in the logs if STRIKES_EACH_SIDE
 // or TRACKED_EXPIRY_WINDOW_DAYS need to come down further.
-const MAX_TOTAL_SUBSCRIPTIONS = 4000;
+const MAX_TOTAL_SUBSCRIPTIONS = 5000;
 
 const MONTHS: Record<string, number> = {
   JAN: 0,
