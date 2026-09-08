@@ -437,7 +437,7 @@ export async function computeAndStoreSnapshots(): Promise<void> {
         dateKeyIST: dateKey,
         // pcr:
         //   totalCallOI > 0 ? Number((totalPutOI / totalCallOI).toFixed(5)) : 0,
-        pcr: Number(calculatedPCR.toFixed(5)),
+        pcr: Number(calculatedPCR.toFixed(4)),
         totalCallOI,
         totalPutOI,
         maxPainStrike,

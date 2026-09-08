@@ -243,7 +243,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       priceFormat: {
         type: "price",
         precision: 4,
-        minMove: 0.00001,
+        minMove: 0.0001,
       },
 
       crosshairMarkerVisible: true,
@@ -267,8 +267,8 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
       priceFormat: {
         type: "price",
-        precision: 5,
-        minMove: 0.00001,
+        precision: 4,
+        minMove: 0.0001,
       },
 
       crosshairMarkerVisible: true,
@@ -529,7 +529,8 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
           position: signal === "bullish" ? "belowBar" : "aboveBar",
           color: signal === "bullish" ? "#22c55e" : "#ef4444",
           shape: signal === "bullish" ? "arrowUp" : "arrowDown",
-          text: signal === "bullish" ? "BULL" : "BEAR",
+          text: signal === "bullish" ? "U" : "D",
+          // text: signal === "bullish" ? "" : "",
         });
       }
     }
@@ -757,7 +758,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
                 <span className="text-cyan-400">PCR</span>
 
                 <span className="text-white font-bold">
-                  {tooltip.pcr?.toFixed(5)}
+                  {tooltip.pcr?.toFixed(4)}
                 </span>
               </div>
 
