@@ -5,11 +5,9 @@ import {
   createChart,
   LineSeries,
   CrosshairMode,
-  createSeriesMarkers,
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
-  type SeriesMarker,
 } from "lightweight-charts";
 
 interface Row {
@@ -35,6 +33,7 @@ interface TooltipData {
   totalCallOI?: number;
   totalPutOI?: number;
   maxPainStrike?: number;
+  trend?: "bullish" | "bearish";
 }
 const INDIA_TIME_ZONE = "Asia/Kolkata";
 
@@ -82,11 +81,49 @@ function formatIndiaTime(timestamp: string | Date) {
   return `${INDIA_DATE_TIME_FORMATTER.format(new Date(timestamp))} IST`;
 }
 
+// to show trend bulish bearish in tool tip
+function getTrend(
+  previous: Row | undefined,
+  current: Row,
+): "bullish" | "bearish" {
+  // First point: use bullish as the default
+  if (!previous) {
+    return "bullish";
+  }
+
+  const pcrIncreasing = current.pcr > previous.pcr;
+  const pcrDecreasing = current.pcr < previous.pcr;
+
+  const priceIncreasing = current.futuresLTP > previous.futuresLTP;
+
+  const priceDecreasing = current.futuresLTP < previous.futuresLTP;
+
+  // PCR ↑ + Futures ↑ = Bullish
+  // PCR ↓ + Futures ↑ = Bullish
+  if (
+    (pcrIncreasing && priceIncreasing) ||
+    (pcrDecreasing && priceIncreasing)
+  ) {
+    return "bullish";
+  }
+
+  // PCR ↑ + Futures ↓ = Bearish
+  // PCR ↓ + Futures ↓ = Bearish
+  if (
+    (pcrIncreasing && priceDecreasing) ||
+    (pcrDecreasing && priceDecreasing)
+  ) {
+    return "bearish";
+  }
+
+  return "bullish";
+}
+
 export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const markersRef = useRef<ReturnType<typeof createSeriesMarkers> | null>(
-    null,
-  );
+  // const markersRef = useRef<ReturnType<typeof createSeriesMarkers> | null>(
+  //   null,
+  // );
 
   const chartRef = useRef<IChartApi | null>(null);
   const pcrSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -234,7 +271,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
      * PCR — LEFT SCALE
      */
     const pcrSeries = chart.addSeries(LineSeries, {
-      color: "#22d3ee",
+      color: "#22c55e",
 
       lineWidth: 2,
 
@@ -279,8 +316,9 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
     });
 
     pcrSeriesRef.current = pcrSeries;
+    // priceSeriesRef.current = priceSeries;
+    // priceSeriesRef.current = priceSeries; // for showing signal
     priceSeriesRef.current = priceSeries;
-    priceSeriesRef.current = priceSeries; // for showing signal
 
     /*
      * ---------------------------------------------------------
@@ -314,6 +352,18 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       }
 
       const row = findNearestRow(dataRef.current, Number(timestamp));
+
+      // data for tool tip for signal bearish bullish
+      const rows = dataRef.current;
+
+      const rowIndex = rows.findIndex(
+        (item) => item.timestamp === row?.timestamp,
+      );
+
+      const trend = row
+        ? getTrend(rowIndex > 0 ? rows[rowIndex - 1] : undefined, row)
+        : undefined;
+      // signal defining ends
 
       if (!row) {
         setTooltip((previous) => ({
@@ -357,6 +407,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
         totalCallOI: row.totalCallOI,
         totalPutOI: row.totalPutOI,
         maxPainStrike: row.maxPainStrike,
+        trend,
       });
     };
 
@@ -382,7 +433,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
 
-      markersRef.current = null;
+      // markersRef.current = null;
       chart.remove();
 
       chartRef.current = null;
@@ -477,78 +528,150 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
      * PREPARE NEW DATA
      * ---------------------------------------------------------
      */
-    const pcrData = uniqueData.map((row) => ({
-      time: toChartTime(row.timestamp),
-      value: Number(row.pcr),
-    }));
+    // const pcrData = uniqueData.map((row) => ({
+    //   time: toChartTime(row.timestamp),
+    //   value: Number(row.pcr),
+    // }));
+
+    // const priceData = uniqueData.map((row) => ({
+    //   time: toChartTime(row.timestamp),
+    //   value: Number(row.futuresLTP),
+    // }));
+
+    // // to show bullish bearish signal as per movement of pcr and price
+    // const signalMarkers: SeriesMarker<UTCTimestamp>[] = [];
+
+    // for (let i = 1; i < uniqueData.length; i++) {
+    //   const previous = uniqueData[i - 1];
+    //   const current = uniqueData[i];
+
+    //   const pcrIncreasing = current.pcr > previous.pcr;
+    //   const pcrDecreasing = current.pcr < previous.pcr;
+
+    //   const priceIncreasing = current.futuresLTP > previous.futuresLTP;
+
+    //   const priceDecreasing = current.futuresLTP < previous.futuresLTP;
+
+    //   let signal: "bullish" | "bearish" | null = null;
+
+    //   // PCR ↑ + Price ↑ = Bullish
+    //   if (pcrIncreasing && priceIncreasing) {
+    //     signal = "bullish";
+    //   }
+
+    //   // PCR ↓ + Price ↓ = Bearish
+    //   else if (pcrDecreasing && priceDecreasing) {
+    //     signal = "bearish";
+    //   }
+
+    //   // PCR ↓ + Price ↑ = Bullish
+    //   else if (pcrDecreasing && priceIncreasing) {
+    //     signal = "bullish";
+    //   }
+
+    //   // PCR ↑ + Price ↓ = Bearish
+    //   else if (pcrIncreasing && priceDecreasing) {
+    //     signal = "bearish";
+    //   }
+
+    //   if (signal) {
+    //     signalMarkers.push({
+    //       time: toChartTime(current.timestamp),
+    //       position: signal === "bullish" ? "belowBar" : "aboveBar",
+    //       color: signal === "bullish" ? "#22c55e" : "#ef4444",
+    //       shape: signal === "bullish" ? "arrowUp" : "arrowDown",
+    //       text: signal === "bullish" ? "U" : "D",
+    //       // text: signal === "bullish" ? "" : "",
+    //     });
+    //   }
+    // }
+
+    // /*
+    //  * ---------------------------------------------------------
+    //  * IMPORTANT:
+    //  *
+    //  * Your API returns the complete history every 10 seconds.
+    //  *
+    //  * Therefore setData() is safer here than update().
+    //  * ---------------------------------------------------------
+    //  */
+    // pcrSeries.setData(pcrData);
+    // priceSeries.setData(priceData);
+    // markersRef.current?.setMarkers(signalMarkers);
+    // // signal maker
+    // const markers = createSeriesMarkers(priceSeries, signalMarkers);
+
+    /*
+     * ---------------------------------------------------------
+     * PREPARE PCR + FUTURES DATA
+     *
+     * PCR line color:
+     *   GREEN = Bullish
+     *   RED   = Bearish
+     *
+     * No arrows / BULL / BEAR markers are used.
+     * ---------------------------------------------------------
+     */
+
+    let previousTrend: "bullish" | "bearish" = "bullish";
+
+    const pcrData = uniqueData.map((row, index) => {
+      let trend = previousTrend;
+
+      if (index > 0) {
+        const previous = uniqueData[index - 1];
+        const current = uniqueData[index];
+
+        const pcrIncreasing = current.pcr > previous.pcr;
+        const pcrDecreasing = current.pcr < previous.pcr;
+
+        const priceIncreasing = current.futuresLTP > previous.futuresLTP;
+
+        const priceDecreasing = current.futuresLTP < previous.futuresLTP;
+
+        /*
+         * PCR ↑ + Price ↑ = Bullish
+         * PCR ↓ + Price ↓ = Bearish
+         * PCR ↓ + Price ↑ = Bullish
+         * PCR ↑ + Price ↓ = Bearish
+         */
+
+        if (
+          (pcrIncreasing && priceIncreasing) ||
+          (pcrDecreasing && priceIncreasing)
+        ) {
+          trend = "bullish";
+        } else if (
+          (pcrIncreasing && priceDecreasing) ||
+          (pcrDecreasing && priceDecreasing)
+        ) {
+          trend = "bearish";
+        }
+
+        previousTrend = trend;
+      }
+
+      return {
+        time: toChartTime(row.timestamp),
+        value: Number(row.pcr),
+
+        // Color the PCR line itself
+        color: trend === "bullish" ? "#22c55e" : "#ef4444",
+      };
+    });
 
     const priceData = uniqueData.map((row) => ({
       time: toChartTime(row.timestamp),
       value: Number(row.futuresLTP),
     }));
 
-    // to show bullish bearish signal as per movement of pcr and price
-    const signalMarkers: SeriesMarker<UTCTimestamp>[] = [];
-
-    for (let i = 1; i < uniqueData.length; i++) {
-      const previous = uniqueData[i - 1];
-      const current = uniqueData[i];
-
-      const pcrIncreasing = current.pcr > previous.pcr;
-      const pcrDecreasing = current.pcr < previous.pcr;
-
-      const priceIncreasing = current.futuresLTP > previous.futuresLTP;
-
-      const priceDecreasing = current.futuresLTP < previous.futuresLTP;
-
-      let signal: "bullish" | "bearish" | null = null;
-
-      // PCR ↑ + Price ↑ = Bullish
-      if (pcrIncreasing && priceIncreasing) {
-        signal = "bullish";
-      }
-
-      // PCR ↓ + Price ↓ = Bearish
-      else if (pcrDecreasing && priceDecreasing) {
-        signal = "bearish";
-      }
-
-      // PCR ↓ + Price ↑ = Bullish
-      else if (pcrDecreasing && priceIncreasing) {
-        signal = "bullish";
-      }
-
-      // PCR ↑ + Price ↓ = Bearish
-      else if (pcrIncreasing && priceDecreasing) {
-        signal = "bearish";
-      }
-
-      if (signal) {
-        signalMarkers.push({
-          time: toChartTime(current.timestamp),
-          position: signal === "bullish" ? "belowBar" : "aboveBar",
-          color: signal === "bullish" ? "#22c55e" : "#ef4444",
-          shape: signal === "bullish" ? "arrowUp" : "arrowDown",
-          text: signal === "bullish" ? "U" : "D",
-          // text: signal === "bullish" ? "" : "",
-        });
-      }
-    }
-
     /*
-     * ---------------------------------------------------------
-     * IMPORTANT:
-     *
-     * Your API returns the complete history every 10 seconds.
-     *
-     * Therefore setData() is safer here than update().
-     * ---------------------------------------------------------
+     * No signal markers.
      */
+    // markersRef.current = null;
+
     pcrSeries.setData(pcrData);
     priceSeries.setData(priceData);
-    markersRef.current?.setMarkers(signalMarkers);
-    // signal maker
-    const markers = createSeriesMarkers(priceSeries, signalMarkers);
 
     /*
      * ---------------------------------------------------------
@@ -723,9 +846,9 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
         </div>
 
         <div className="flex items-center gap-4 text-[10px] font-mono">
-          <div className="flex items-center gap-1.5 text-cyan-400">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            PCR
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span>PCR</span>
           </div>
 
           <div className="flex items-center gap-1.5 text-indigo-400">
@@ -759,6 +882,20 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
                 <span className="text-white font-bold">
                   {tooltip.pcr?.toFixed(4)}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4 border-t border-slate-800 pt-1.5 mt-1.5">
+                <span className="text-slate-400">Trend</span>
+
+                <span
+                  className={`font-bold ${
+                    tooltip.trend === "bullish"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {tooltip.trend === "bullish" ? "🟢 BULLISH" : "🔴 BEARISH"}
                 </span>
               </div>
 
