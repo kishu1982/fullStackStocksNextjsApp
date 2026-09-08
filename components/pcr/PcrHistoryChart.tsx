@@ -243,7 +243,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       priceFormat: {
         type: "price",
         precision: 4,
-        minMove: 0.01,
+        minMove: 0.00001,
       },
 
       crosshairMarkerVisible: true,

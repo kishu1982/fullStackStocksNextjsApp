@@ -419,14 +419,25 @@ export async function computeAndStoreSnapshots(): Promise<void> {
           )
         : 0;
 
+      const calculatedPCR = totalCallOI > 0 ? totalPutOI / totalCallOI : 0;
+
+      console.log(
+        `[PCR][CALC] ${symbol} ${expiry} | ` +
+          `Call OI=${totalCallOI} | ` +
+          `Put OI=${totalPutOI} | ` +
+          `PCR=${calculatedPCR} | ` +
+          `PCR(5)=${calculatedPCR.toFixed(5)}`,
+      );
+
       const doc = repo.create({
         symbol,
         exchange,
         expiry,
         timestamp: now,
         dateKeyIST: dateKey,
-        pcr:
-          totalCallOI > 0 ? Number((totalPutOI / totalCallOI).toFixed(5)) : 0,
+        // pcr:
+        //   totalCallOI > 0 ? Number((totalPutOI / totalCallOI).toFixed(5)) : 0,
+        pcr: Number(calculatedPCR.toFixed(5)),
         totalCallOI,
         totalPutOI,
         maxPainStrike,
