@@ -73,6 +73,26 @@ async function initializeDataSource(ds: DataSource): Promise<DataSource> {
   return ds;
 }
 
+/**
+ * Returns the Mongo repository for PcrSnapshot, resolved by entity NAME
+ * ("PcrSnapshot") rather than by class reference.
+ *
+ * Why: in Next.js dev mode, HMR re-evaluates PcrSnapshot.entity.ts on file
+ * changes and produces a brand-new class object each time. The cached
+ * DataSource is intentionally kept alive across these reloads, so its
+ * metadata map still points at the ORIGINAL class object. Calling
+ * ds.getMongoRepository(PcrSnapshot) with a freshly-imported class
+ * reference then fails with:
+ *   EntityMetadataNotFoundError: No metadata for "PcrSnapshot" was found.
+ *
+ * TypeORM keys its metadata by target.name as well as by the class itself,
+ * so looking the repo up by the string name avoids the mismatch entirely.
+ */
+export async function getPcrSnapshotRepository() {
+  const ds = await getDataSource();
+  return ds.getMongoRepository<PcrSnapshot>("PcrSnapshot");
+}
+
 export async function getDataSource(): Promise<DataSource> {
   /*
    * ---------------------------------------------------------

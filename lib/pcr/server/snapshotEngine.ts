@@ -163,8 +163,9 @@ export async function computeAndStoreSnapshots(): Promise<void> {
 
 /** Keeps only today + the previous 2 IST calendar days (3 days total). */
 export async function cleanupOldSnapshots(): Promise<void> {
-  const ds = await getDataSource();
-  const repo = ds.getMongoRepository<PcrSnapshot>("PcrSnapshot");
+  // const ds = await getDataSource();
+  // const repo = ds.getMongoRepository<PcrSnapshot>("PcrSnapshot");
+  const repo = await getPcrSnapshotRepository();
 
   const keep: string[] = [];
   for (let i = 0; i < 3; i++) {

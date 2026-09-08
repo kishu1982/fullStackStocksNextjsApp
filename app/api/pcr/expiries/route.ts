@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDataSource } from "@/lib/db/data-source";
-import { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
+import { getPcrSnapshotRepository } from "@/lib/db/data-source";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +15,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
     const expiries: string[] = await repo.distinct("expiry", {
       symbol: symbol.toUpperCase(),
     } as any);
