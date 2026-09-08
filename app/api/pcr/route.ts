@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDataSource } from "@/lib/db/data-source";
-import { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
+// import { getDataSource } from "@/lib/db/data-source";
+// import { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
+import { getPcrSnapshotRepository } from "@/lib/db/data-source";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    // const ds = await getDataSource();
+    // const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
 
     const where: Record<string, any> = { symbol: symbol.toUpperCase() };
     if (expiry) where.expiry = expiry;
@@ -47,8 +49,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    // const ds = await getDataSource();
+    // const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
     const doc = repo.create(body);
     const saved = await repo.save(doc);
     return NextResponse.json({ success: true, data: saved });
@@ -75,8 +78,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    // const ds = await getDataSource();
+    // const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
     const where: Record<string, any> = { symbol: symbol.toUpperCase() };
     if (expiry) where.expiry = expiry;
 

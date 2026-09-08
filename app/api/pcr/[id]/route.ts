@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { getDataSource } from "@/lib/db/data-source";
-import { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
+// import { getDataSource } from "@/lib/db/data-source";
+// import { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
+import { getPcrSnapshotRepository } from "@/lib/db/data-source";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,9 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    // const ds = await getDataSource();
+    // const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
     const row = await repo.findOneBy({ _id: new ObjectId(id) } as any);
     if (!row)
       return NextResponse.json(
@@ -35,8 +37,9 @@ export async function PUT(
   const { id } = await params;
   try {
     const body = await req.json();
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    // const ds = await getDataSource();
+    // const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
     await repo.updateOne({ _id: new ObjectId(id) } as any, { $set: body });
     const row = await repo.findOneBy({ _id: new ObjectId(id) } as any);
     return NextResponse.json({ success: true, data: row });
@@ -54,8 +57,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const ds = await getDataSource();
-    const repo = ds.getMongoRepository(PcrSnapshot);
+    // const ds = await getDataSource();
+    // const repo = ds.getMongoRepository(PcrSnapshot);
+    const repo = await getPcrSnapshotRepository();
     const result = await repo.deleteOne({ _id: new ObjectId(id) } as any);
     return NextResponse.json({
       success: true,
