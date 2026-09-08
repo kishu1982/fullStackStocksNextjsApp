@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
 
-const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
+// const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
+const SYMBOLS = ["NIFTY", "SENSEX"];
 
 interface PcrSnapshotRow {
   id: string;
