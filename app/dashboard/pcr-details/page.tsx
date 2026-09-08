@@ -175,7 +175,8 @@ export default function PcrDetailsPage() {
               accent="cyan"
             />
             <StatCard
-              label={`${symbol} Future`}
+              // label={`${symbol} spot / Futures LTP`}
+              label={`${symbol} spot / LTP`}
               value={latest ? latest.futuresLTP.toFixed(2) : "—"}
               accent="indigo"
             />
