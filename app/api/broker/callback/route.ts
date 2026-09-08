@@ -51,12 +51,19 @@ export async function GET(req: NextRequest) {
       ? rawExpiry
       : Math.floor(Date.now() / 1000) + rawExpiry;
 
+  console.log("🔐 Broker authentication successful");
+  console.log("👤 Broker UID:", data.uid);
+  console.log("🎟️ Access token received:", data.access_token ? "YES" : "NO");
+  console.log("🔄 Refresh token received:", data.refresh_token ? "YES" : "NO");
+  console.log("⏰ Expires at:", expiresAt);
+
   await saveBrokerToken({
     uid: data.uid,
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
     expiresAt,
   });
+  console.log("✅ saveBrokerToken() completed successfully");
 
   const redirectUrl = new URL("/dashboard", req.url);
   redirectUrl.searchParams.set("uid", data.uid);

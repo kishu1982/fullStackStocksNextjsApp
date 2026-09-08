@@ -48,6 +48,13 @@ async function initializeDataSource(ds: DataSource): Promise<DataSource> {
       },
     );
 
+    await tokenRepo.createCollectionIndex(
+      { uid: 1 },
+      {
+        unique: true,
+      },
+    );
+
     const pcrRepo = ds.getMongoRepository(PcrSnapshot);
 
     await pcrRepo.createCollectionIndex({
@@ -119,6 +126,12 @@ export async function getDataSource(): Promise<DataSource> {
         global.__typeormDataSource = initialized;
 
         return initialized;
+      })
+      .catch((err) => {
+        // Clear the cached DataSource so the next call creates a fresh one
+        // instead of retrying with the broken reference.
+        global.__typeormDataSource = undefined;
+        throw err;
       })
       .finally(() => {
         global.__typeormDataSourceInitPromise = undefined;

@@ -13,7 +13,7 @@ import { serverBrokerFeed } from "./brokerFeedServer";
 import { getTick } from "./tickCache";
 import { istDateKey } from "./marketHours";
 import { getDataSource } from "@/lib/db/data-source";
-import { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
+import type { PcrSnapshot } from "@/lib/db/entities/PcrSnapshot.entity";
 
 // The underlyings this engine tracks. Add more here if needed later.
 export const TRACKED_UNDERLYINGS = [
@@ -91,7 +91,7 @@ function pickUnderlyingFuture(futures: Instrument[], expiry: string | null) {
 /** Computes PCR / Max Pain / futures LTP for every tracked (symbol, expiry) and stores a row. */
 export async function computeAndStoreSnapshots(): Promise<void> {
   const ds = await getDataSource();
-  const repo = ds.getMongoRepository(PcrSnapshot);
+  const repo = ds.getMongoRepository<PcrSnapshot>("PcrSnapshot");
   const now = new Date();
   const dateKey = istDateKey(now);
 
@@ -162,7 +162,7 @@ export async function computeAndStoreSnapshots(): Promise<void> {
 /** Keeps only today + the previous 2 IST calendar days (3 days total). */
 export async function cleanupOldSnapshots(): Promise<void> {
   const ds = await getDataSource();
-  const repo = ds.getMongoRepository(PcrSnapshot);
+  const repo = ds.getMongoRepository<PcrSnapshot>("PcrSnapshot");
 
   const keep: string[] = [];
   for (let i = 0; i < 3; i++) {
