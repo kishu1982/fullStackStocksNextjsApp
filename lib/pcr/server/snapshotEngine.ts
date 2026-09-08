@@ -23,6 +23,21 @@ export const TRACKED_UNDERLYINGS = [
   { symbol: "SENSEX", exchange: "BFO" },
 ] as const;
 
+const SPOT_TOKENS: Record<string, { exchange: string; token: string }> = {
+  NIFTY: {
+    exchange: "NSE",
+    token: "26000",
+  },
+  BANKNIFTY: {
+    exchange: "NSE",
+    token: "26009",
+  },
+  SENSEX: {
+    exchange: "BSE",
+    token: "1",
+  },
+};
+
 let instrumentCache: Record<string, Instrument[]> = {};
 let lastLoadedDateKey: string | null = null;
 
@@ -341,15 +356,42 @@ export async function loadTrackedInstruments(): Promise<void> {
 export function subscribeAllTokens(): void {
   for (const { symbol } of TRACKED_UNDERLYINGS) {
     let count = 0;
+
+    // Subscribe to FUTIDX + OPTIDX
     for (const inst of instrumentCache[symbol] || []) {
       if (inst.instrument === "FUTIDX" || inst.instrument === "OPTIDX") {
         serverBrokerFeed.subscribe(inst.exchange, inst.token);
         count++;
       }
     }
-    console.log(`[PCR][subscribe] ${symbol}: ${count} tokens queued`);
+
+    // Subscribe to SPOT/index token
+    const spot = SPOT_TOKENS[symbol];
+
+    if (spot) {
+      serverBrokerFeed.subscribe(spot.exchange, spot.token);
+
+      console.log(
+        `[PCR][subscribe] ${symbol}: SPOT ${spot.exchange}|${spot.token} queued`,
+      );
+    }
+
+    console.log(`[PCR][subscribe] ${symbol}: ${count} F&O tokens queued`);
   }
 }
+
+// export function subscribeAllTokens(): void {
+//   for (const { symbol } of TRACKED_UNDERLYINGS) {
+//     let count = 0;
+//     for (const inst of instrumentCache[symbol] || []) {
+//       if (inst.instrument === "FUTIDX" || inst.instrument === "OPTIDX") {
+//         serverBrokerFeed.subscribe(inst.exchange, inst.token);
+//         count++;
+//       }
+//     }
+//     console.log(`[PCR][subscribe] ${symbol}: ${count} tokens queued`);
+//   }
+// }
 
 // NIFTY/BANKNIFTY have weekly option expiries but only monthly futures — fall
 // back to the nearest (front-month) future when there's no exact match.
@@ -412,11 +454,19 @@ export async function computeAndStoreSnapshots(): Promise<void> {
       if (totalCallOI === 0 && totalPutOI === 0) continue; // no OI ticks yet — skip this round
 
       const { maxPainStrike } = calculateMaxPain(oiPoints);
-      const underlyingFuture = pickUnderlyingFuture(futures, expiry);
-      const futuresLTP = underlyingFuture
-        ? Number(
-            getTick(underlyingFuture.exchange, underlyingFuture.token)?.lp || 0,
-          )
+      // get exact future contract price
+      // const underlyingFuture = pickUnderlyingFuture(futures, expiry);
+      // const futuresLTP = underlyingFuture
+      //   ? Number(
+      //       getTick(underlyingFuture.exchange, underlyingFuture.token)?.lp || 0,
+      //     )
+      //   : 0;
+
+      // get spot price for underlying future contract
+      const spot = SPOT_TOKENS[symbol];
+
+      const futuresLTP = spot
+        ? Number(getTick(spot.exchange, spot.token)?.lp || 0)
         : 0;
 
       const calculatedPCR = totalCallOI > 0 ? totalPutOI / totalCallOI : 0;
@@ -441,10 +491,20 @@ export async function computeAndStoreSnapshots(): Promise<void> {
         totalCallOI,
         totalPutOI,
         maxPainStrike,
+        // TEMPORARILY KEEP EXISTING DB FIELD NAME.
+        // Value is now SPOT LTP.
         futuresLTP,
-        futuresToken: underlyingFuture?.token || "",
-        futuresExpiryUsed: underlyingFuture?.expiry || undefined,
+
+        // TEMPORARILY KEEP EXISTING DB FIELD NAME.
+        // Value is now SPOT token.
+        futuresToken: spot?.token || "",
+
+        // No futures expiry because we are storing SPOT.
+        futuresExpiryUsed: undefined,
       });
+      console.log(
+        `[PCR][SPOT] ${symbol}: token=${spot?.token} LTP=${futuresLTP}`,
+      );
 
       await repo.save(doc);
       savedCount++;
