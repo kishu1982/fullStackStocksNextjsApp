@@ -69,16 +69,39 @@ export async function loadTrackedInstruments(): Promise<void> {
       .map(toInstrument);
   }
   instrumentCache = next;
+
+  // DIAGNOSTIC: confirm the instrument master actually contains rows for
+  // every tracked symbol, split by instrument type.
+  for (const { symbol, exchange } of TRACKED_UNDERLYINGS) {
+    const list = instrumentCache[symbol] || [];
+    const futCount = list.filter((i) => i.instrument === "FUTIDX").length;
+    const optCount = list.filter((i) => i.instrument === "OPTIDX").length;
+    console.log(
+      `[PCR][instruments] ${symbol} (${exchange}): total=${list.length} FUTIDX=${futCount} OPTIDX=${optCount}`,
+    );
+  }
 }
 
 /** Subscribes the server-side feed to every FUTIDX + OPTIDX token for tracked symbols. */
+// export function subscribeAllTokens(): void {
+//   for (const { symbol } of TRACKED_UNDERLYINGS) {
+//     for (const inst of instrumentCache[symbol] || []) {
+//       if (inst.instrument === "FUTIDX" || inst.instrument === "OPTIDX") {
+//         serverBrokerFeed.subscribe(inst.exchange, inst.token);
+//       }
+//     }
+//   }
+// }
 export function subscribeAllTokens(): void {
   for (const { symbol } of TRACKED_UNDERLYINGS) {
+    let count = 0;
     for (const inst of instrumentCache[symbol] || []) {
       if (inst.instrument === "FUTIDX" || inst.instrument === "OPTIDX") {
         serverBrokerFeed.subscribe(inst.exchange, inst.token);
+        count++;
       }
     }
+    console.log(`[PCR][subscribe] ${symbol}: ${count} tokens queued`);
   }
 }
 
@@ -91,15 +114,16 @@ function pickUnderlyingFuture(futures: Instrument[], expiry: string | null) {
 
 /** Computes PCR / Max Pain / futures LTP for every tracked (symbol, expiry) and stores a row. */
 export async function computeAndStoreSnapshots(): Promise<void> {
-  // const ds = await getDataSource();
-  // const repo = ds.getMongoRepository<PcrSnapshot>("PcrSnapshot");
   const repo = await getPcrSnapshotRepository();
   const now = new Date();
   const dateKey = istDateKey(now);
 
   for (const { symbol, exchange } of TRACKED_UNDERLYINGS) {
     const instruments = instrumentCache[symbol] || [];
-    if (instruments.length === 0) continue;
+    if (instruments.length === 0) {
+      console.log(`[PCR][skip] ${symbol}: instrumentCache is empty`);
+      continue;
+    }
 
     const futures = getFutures(instruments);
     const expiries = Array.from(
@@ -109,6 +133,15 @@ export async function computeAndStoreSnapshots(): Promise<void> {
           .map((i) => i.expiry as string),
       ),
     );
+
+    if (expiries.length === 0) {
+      console.log(
+        `[PCR][skip] ${symbol}: 0 OPTIDX expiries found (${instruments.length} instruments loaded, ${futures.length} futures)`,
+      );
+      continue;
+    }
+
+    let savedCount = 0;
 
     for (const expiry of expiries) {
       const options = getOptionsForExpiry(instruments, expiry);
@@ -130,7 +163,7 @@ export async function computeAndStoreSnapshots(): Promise<void> {
         return { strike: row.strikePrice, ceOI, peOI };
       });
 
-      if (totalCallOI === 0 && totalPutOI === 0) continue; // no OI ticks yet — skip this round
+      if (totalCallOI === 0 && totalPutOI === 0) continue;
 
       const { maxPainStrike } = calculateMaxPain(oiPoints);
       const underlyingFuture = pickUnderlyingFuture(futures, expiry);
@@ -157,7 +190,12 @@ export async function computeAndStoreSnapshots(): Promise<void> {
       });
 
       await repo.save(doc);
+      savedCount++;
     }
+
+    console.log(
+      `[PCR][cycle] ${symbol}: ${expiries.length} expiries checked, ${savedCount} rows saved`,
+    );
   }
 }
 

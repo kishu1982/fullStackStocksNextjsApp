@@ -97,7 +97,11 @@ class ServerBrokerFeed {
   }
 
   private flushPendingQueue() {
-    if (this.pendingQueue.length === 0 || this.ws?.readyState !== WebSocket.OPEN) return;
+    if (
+      this.pendingQueue.length === 0 ||
+      this.ws?.readyState !== WebSocket.OPEN
+    )
+      return;
     const batch = this.pendingQueue.splice(0, 50);
     this.send({ t: "t", k: batch.join("#") });
     if (this.pendingQueue.length > 0) {
@@ -107,6 +111,9 @@ class ServerBrokerFeed {
 
   private flushSubscribed() {
     const allKeys = Array.from(this.subscribed);
+    console.log(
+      `[PCR][feed] flushing ${allKeys.length} subscribed tokens in batches of 50`,
+    );
     this.pendingQueue = allKeys;
     this.flushPendingQueue();
   }
