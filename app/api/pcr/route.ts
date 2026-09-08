@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const symbol = searchParams.get("symbol");
     const expiry = searchParams.get("expiry");
     const since = searchParams.get("since");
-    const limit = Number(searchParams.get("limit") || 500);
+    const limit = Number(searchParams.get("limit") || 5000);
 
     if (!symbol) {
       return NextResponse.json(
@@ -29,11 +29,21 @@ export async function GET(req: NextRequest) {
     if (expiry) where.expiry = expiry;
     if (since) where.timestamp = { $gt: new Date(since) };
 
+    // const rows = await repo.find({
+    //   where,
+    //   order: { timestamp: "ASC" } as any,
+    //   take: limit,
+    // } as any);
+
+    // to get latest data not older
+
     const rows = await repo.find({
       where,
-      order: { timestamp: "ASC" } as any,
+      order: { timestamp: "DESC" } as any,
       take: limit,
     } as any);
+
+    rows.reverse();
 
     return NextResponse.json({ success: true, count: rows.length, data: rows });
   } catch (error: any) {

@@ -58,8 +58,11 @@ export default function PcrDetailsPage() {
       setLoading(true);
       try {
         const res = await fetch(
-          `/api/pcr?symbol=${symbol}&expiry=${encodeURIComponent(expiry)}&limit=300`,
+          `/api/pcr?symbol=${symbol}&expiry=${encodeURIComponent(expiry)}&limit=5000`,
         );
+        // means 5000 × 10 sec
+        // = 50,000 sec
+        // ≈ 13.9 hours
         const json = await res.json();
 
         if (!cancelled && json.success) {
