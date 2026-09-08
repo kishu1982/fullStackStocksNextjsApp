@@ -61,7 +61,30 @@ export default function PcrDetailsPage() {
           `/api/pcr?symbol=${symbol}&expiry=${encodeURIComponent(expiry)}&limit=300`,
         );
         const json = await res.json();
-        if (!cancelled && json.success) setRows(json.data);
+
+        if (!cancelled && json.success) {
+          const normalizedRows = json.data.map((row: PcrSnapshotRow) => {
+            const callOI = Number(row.totalCallOI || 0);
+            const putOI = Number(row.totalPutOI || 0);
+
+            const calculatedPCR =
+              callOI > 0 ? putOI / callOI : Number(row.pcr || 0);
+
+            return {
+              ...row,
+              pcr: calculatedPCR,
+            };
+          });
+
+          // to check data
+          console.log("[PCR UI]", {
+            latestRawPCR: json.data?.[json.data.length - 1]?.pcr,
+            latestCallOI: json.data?.[json.data.length - 1]?.totalCallOI,
+            latestPutOI: json.data?.[json.data.length - 1]?.totalPutOI,
+            calculatedPCR: normalizedRows?.[normalizedRows.length - 1]?.pcr,
+          });
+          setRows(normalizedRows);
+        }
       } catch (err) {
         console.error("Failed to load PCR data", err);
       } finally {
