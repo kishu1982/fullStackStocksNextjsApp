@@ -55,7 +55,7 @@ const TRACKED_MONTHLY_EXPIRIES = 2;
 // across every expiry ever listed (18 expiries × 100+ strikes for NIFTY
 // alone) → 9,453 tokens on one connection, which the broker's WS
 // self-protected against by dropping the connection in a loop.
-const STRIKES_EACH_SIDE = 25;
+const STRIKES_EACH_SIDE = 50;
 
 // Hard safety ceiling matching the broker's documented WS subscription
 // limit. We only ever WARN if we exceed it (rather than silently
