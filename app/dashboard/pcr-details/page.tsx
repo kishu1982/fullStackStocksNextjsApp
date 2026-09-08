@@ -134,7 +134,14 @@ export default function PcrDetailsPage() {
             <StatCard
               label="PCR"
               value={latest ? latest.pcr.toFixed(5) : "—"}
-              accent={latest && latest.pcr >= 1 ? "emerald" : "rose"}
+              subText={
+                latest
+                  ? latest.pcr > 1
+                    ? "Put OI Higher"
+                    : "Call OI is Higher"
+                  : undefined
+              }
+              accent={latest && latest.pcr > 1 ? "emerald" : "rose"}
             />
             <StatCard
               label="Max Pain"
@@ -187,10 +194,12 @@ export default function PcrDetailsPage() {
 function StatCard({
   label,
   value,
+  subText,
   accent,
 }: {
   label: string;
   value: string;
+  subText?: string;
   accent: string;
 }) {
   const colors: Record<string, string> = {
@@ -206,6 +215,12 @@ function StatCard({
         {label}
       </div>
       <div className="text-lg font-bold font-mono">{value}</div>
+
+      {subText && (
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide">
+          {subText}
+        </div>
+      )}
     </div>
   );
 }
