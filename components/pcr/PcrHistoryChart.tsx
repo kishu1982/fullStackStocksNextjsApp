@@ -35,6 +35,7 @@ interface TooltipData {
   maxPainStrike?: number;
   trend?: "bullish" | "bearish";
 }
+
 const INDIA_TIME_ZONE = "Asia/Kolkata";
 
 const INDIA_TIME_FORMATTER = new Intl.DateTimeFormat("en-IN", {
@@ -119,6 +120,35 @@ function getTrend(
   return "bullish";
 }
 
+//1-minute aggregation function
+function aggregateToOneMinute(rows: Row[]): Row[] {
+  if (!rows.length) return [];
+
+  const buckets = new Map<number, Row>();
+
+  for (const row of rows) {
+    const timestampMs = new Date(row.timestamp).getTime();
+
+    if (!Number.isFinite(timestampMs)) continue;
+
+    // Start of the minute.
+    const minuteTimestampMs = Math.floor(timestampMs / 60_000) * 60_000;
+
+    // Keep the LAST snapshot in each minute.
+    buckets.set(minuteTimestampMs, row);
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([minuteTimestampMs, row]) => ({
+      ...row,
+
+      // Give the aggregated point the exact beginning
+      // of its 1-minute candle.
+      timestamp: new Date(minuteTimestampMs).toISOString(),
+    }));
+}
+
 export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // const markersRef = useRef<ReturnType<typeof createSeriesMarkers> | null>(
@@ -129,6 +159,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
   const pcrSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const priceSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
+  // const dataRef = useRef<Row[]>(data);
   const dataRef = useRef<Row[]>(data);
 
   const [tooltip, setTooltip] = useState<TooltipData>({
@@ -138,6 +169,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
     timestamp: "",
   });
 
+  const [timeframe, setTimeframe] = useState<"default" | "1m">("default");
   /*
    * ---------------------------------------------------------
    * CREATE CHART
@@ -152,6 +184,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       autoSize: true,
 
       layout: {
+        attributionLogo: false, // 👈 This hides the TradingView watermark/logo
         background: {
           color: "transparent",
         },
@@ -504,6 +537,18 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       return;
     }
 
+    // 1  minute aggregation
+    const chartData =
+      timeframe === "1m" ? aggregateToOneMinute(uniqueData) : uniqueData;
+
+    dataRef.current = chartData;
+
+    if (chartData.length === 0) {
+      pcrSeries.setData([]);
+      priceSeries.setData([]);
+      return;
+    }
+
     /*
      * ---------------------------------------------------------
      * SAVE CURRENT VIEW
@@ -615,12 +660,18 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
     let previousTrend: "bullish" | "bearish" = "bullish";
 
-    const pcrData = uniqueData.map((row, index) => {
+    // const pcrData = uniqueData.map((row, index) => {
+    // // for default data of chart as per database
+    const pcrData = chartData.map((row, index) => {
+      // changed to chart data for 1 min
       let trend = previousTrend;
 
       if (index > 0) {
-        const previous = uniqueData[index - 1];
-        const current = uniqueData[index];
+        // const previous = uniqueData[index - 1];
+        // const current = uniqueData[index];
+
+        const previous = chartData[index - 1];
+        const current = chartData[index];
 
         const pcrIncreasing = current.pcr > previous.pcr;
         const pcrDecreasing = current.pcr < previous.pcr;
@@ -660,7 +711,9 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       };
     });
 
-    const priceData = uniqueData.map((row) => ({
+    // future maping
+    // const priceData = uniqueData.map((row) => ({
+    const priceData = chartData.map((row) => ({
       time: toChartTime(row.timestamp),
       value: Number(row.futuresLTP),
     }));
@@ -700,7 +753,8 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
      * Keep their current zoom/pan position.
      * ---------------------------------------------------------
      */
-    const maxIndex = uniqueData.length - 1;
+    // const maxIndex = uniqueData.length - 1;
+    const maxIndex = chartData.length - 1;
 
     const from = Math.max(0, Math.min(oldRange.from, maxIndex));
 
@@ -710,7 +764,7 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       from,
       to,
     });
-  }, [data]);
+  }, [data, timeframe]);
 
   /*
    * ---------------------------------------------------------
@@ -759,11 +813,21 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
     chartRef.current?.timeScale().fitContent();
   };
 
+  // to update show last data with 1 minute data if zoom options selected like 30 60 120
+  function getDisplayData(): Row[] {
+    if (timeframe === "1m") {
+      return aggregateToOneMinute(data);
+    }
+
+    return data;
+  }
+
   const showLast = (bars: number) => {
     const chart = chartRef.current;
     if (!chart) return;
 
-    const total = data.length;
+    // const total = data.length;
+    const total = getDisplayData().length;
 
     if (total === 0) return;
 
@@ -783,6 +847,30 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
   return (
     <div className="w-full">
       {/* TOOLBAR */}
+      <button
+        type="button"
+        onClick={() => setTimeframe("default")}
+        className={`px-3 py-1.5 rounded-md border text-xs font-mono ${
+          timeframe === "default"
+            ? "bg-cyan-600 border-cyan-500 text-white"
+            : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+        }`}
+      >
+        Raw
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setTimeframe("1m")}
+        className={`px-3 py-1.5 rounded-md border text-xs font-mono ${
+          timeframe === "1m"
+            ? "bg-cyan-600 border-cyan-500 text-white"
+            : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+        }`}
+      >
+        1 Minute
+      </button>
+      {/* existing zoom controls */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex flex-wrap items-center gap-1">
           <button
@@ -939,7 +1027,12 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
       <div className="mt-2 flex flex-wrap justify-between gap-2 text-[10px] text-slate-600 font-mono">
         <span>Scroll = zoom · Drag = pan · Double-click = reset</span>
 
-        <span>{data.length} samples</span>
+        {/* <span>{data.length} samples</span> */}
+        <span>
+          {timeframe === "1m"
+            ? `${aggregateToOneMinute(data).length} 1-minute samples`
+            : `${data.length} raw samples`}
+        </span>
       </div>
     </div>
   );

@@ -111,8 +111,8 @@ export default function PcrDetailsPage() {
         <div>
           <h1 className="text-xl font-bold text-white">PCR Details</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Stored PCR, Max Pain &amp; Futures price — refreshes every 10
-            seconds.
+            Stored PCR, Max Pain &amp; Futures price — refreshes selected TF
+            raw/1 minute seconds.
           </p>
         </div>
 
