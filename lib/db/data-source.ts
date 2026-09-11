@@ -1,3 +1,9 @@
+// to fixe mongo db DNS SRV issue in windows
+import dns from "node:dns";
+
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// then existing code
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 
