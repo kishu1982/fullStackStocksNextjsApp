@@ -3,19 +3,53 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  getSession,
-  clearSession,
-  BrokerSession,
-} from "@/lib/broker/tokenClient";
+import type { BrokerSession } from "@/lib/broker/tokenClient";
 
 const Menu = () => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const [session, setSession] = useState<BrokerSession | null>(null);
 
   useEffect(() => {
-    setSession(getSession());
+    let cancelled = false;
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/broker/session", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setSession(null);
+          }
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          if (data?.authenticated && data?.session) {
+            setSession(data.session);
+          } else {
+            setSession(null);
+          }
+        }
+      } catch (error) {
+        console.error("Menu session check failed:", error);
+
+        if (!cancelled) {
+          setSession(null);
+        }
+      }
+    }
+
+    loadSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname]);
 
   // Close mobile drawer when route changes
@@ -102,12 +136,24 @@ const Menu = () => {
     },
   ];
 
-  const handleLogout = () => {
-    clearSession();
-    setSession(null);
-    window.location.href = "/login";
-  };
+  // const handleLogout = () => {
+  //   clearSession();
+  //   setSession(null);
+  //   window.location.href = "/login";
+  // };
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/broker/logout", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setSession(null);
+      window.location.href = "/login";
+    }
+  };
   return (
     <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

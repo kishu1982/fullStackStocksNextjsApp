@@ -65,9 +65,12 @@ export async function GET(req: NextRequest) {
   });
   console.log("✅ saveBrokerToken() completed successfully");
 
-  const redirectUrl = new URL("/dashboard", req.url);
-  redirectUrl.searchParams.set("uid", data.uid);
-  redirectUrl.searchParams.set("token", data.access_token);
-  redirectUrl.searchParams.set("expiresAt", String(expiresAt));
-  return NextResponse.redirect(redirectUrl);
+  // const redirectUrl = new URL("/dashboard", req.url);
+  // redirectUrl.searchParams.set("uid", data.uid);
+  // redirectUrl.searchParams.set("token", data.access_token);
+  // redirectUrl.searchParams.set("expiresAt", String(expiresAt));
+  // return NextResponse.redirect(redirectUrl);
+
+  // now work with only db token
+  return NextResponse.redirect(new URL("/dashboard", req.url));
 }

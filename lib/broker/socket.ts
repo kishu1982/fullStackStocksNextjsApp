@@ -16,6 +16,7 @@ export class BrokerSocket {
   private subscribedKeys = new Set<string>();
   private handlers = new Set<TickHandler>();
   private authFailed = false;
+  private manuallyClosed = false;
 
   private clientId: string;
   private actid: string;
@@ -39,6 +40,7 @@ export class BrokerSocket {
       return;
     }
     this.authFailed = false;
+    this.manuallyClosed = false;
 
     console.log("Broker WS connecting with:", {
       clientId: this.clientId,
@@ -135,15 +137,31 @@ export class BrokerSocket {
         code: event.code,
         reason: event.reason,
         wasClean: event.wasClean,
+        manuallyClosed: this.manuallyClosed,
+        authFailed: this.authFailed,
       });
+
       this.stopHeartbeat();
+
+      if (this.manuallyClosed) {
+        console.log(
+          "⏹️ Broker WS was intentionally closed — not reconnecting.",
+        );
+        return;
+      }
+
       if (this.authFailed) {
         console.error(
           "Not reconnecting — authentication was rejected, need a fresh login.",
         );
         return;
       }
-      this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+
+      console.log("🔄 Broker WS disconnected — reconnecting in 3 seconds...");
+
+      this.reconnectTimer = setTimeout(() => {
+        this.connect();
+      }, 3000);
     };
 
     this.ws.onerror = (err) => console.error("Broker WS error", err);
@@ -180,8 +198,17 @@ export class BrokerSocket {
   }
 
   close() {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.manuallyClosed = true;
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     this.stopHeartbeat();
-    this.ws?.close();
+
+    if (this.ws) {
+      this.ws.close();
+    }
   }
 }

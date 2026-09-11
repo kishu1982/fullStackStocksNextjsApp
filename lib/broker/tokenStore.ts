@@ -112,3 +112,18 @@ export async function getAnyValidBrokerToken() {
   return valid[0] ?? null;
 }
 
+export async function getValidBrokerToken() {
+  const token = await getAnyValidBrokerToken();
+
+  if (!token) {
+    return null;
+  }
+
+  return token;
+}
+
+export async function clearBrokerToken(): Promise<void> {
+  const repository = await getBrokerTokenRepo();
+
+  await repository.clear();
+}

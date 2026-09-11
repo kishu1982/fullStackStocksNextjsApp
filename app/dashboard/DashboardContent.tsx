@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  saveSession,
-  getSession,
-  BrokerSession,
-} from "@/lib/broker/tokenClient";
+// import {
+//   saveSession,
+//   getSession,
+//   BrokerSession,
+// } from "@/lib/broker/tokenClient";
+import type { BrokerSession } from "@/lib/broker/tokenClient";
 import { useSessionGuard } from "@/hooks/useSessionGuard";
 import { useTicks } from "@/hooks/useTicks";
 
@@ -20,38 +21,55 @@ const PriceCell = ({ value }: { value: any }) => {
   const prevValue = prevValueRef.current;
 
   let textColor = "text-slate-200 font-mono font-semibold";
-  if (value > prevValue) textColor = "text-emerald-400 font-mono font-bold animate-pulse";
-  if (value < prevValue) textColor = "text-rose-400 font-mono font-bold animate-pulse";
+  if (value > prevValue)
+    textColor = "text-emerald-400 font-mono font-bold animate-pulse";
+  if (value < prevValue)
+    textColor = "text-rose-400 font-mono font-bold animate-pulse";
 
   return <span className={textColor}>{value ?? "—"}</span>;
 };
 
 export default function DashboardContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
   const [session, setSession] = useState<BrokerSession | null>(null);
   const [niftyToken, setNiftyToken] = useState<string | null>(null);
 
+  // now work based on db token only
   useEffect(() => {
-    const token = searchParams.get("token");
-    const uid = searchParams.get("uid");
-    const expiresAt = searchParams.get("expiresAt");
+    let cancelled = false;
 
-    if (token && uid && expiresAt) {
-      saveSession({ uid, accessToken: token, expiresAt: Number(expiresAt) });
-      setSession(getSession());
-      router.replace("/dashboard");
-      return;
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/broker/session", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          window.location.href = "/login?error=session_expired";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.authenticated || !data.session) {
+          window.location.href = "/login?error=session_expired";
+          return;
+        }
+
+        if (!cancelled) {
+          setSession(data.session);
+        }
+      } catch (error) {
+        console.error("Failed to load broker session:", error);
+        window.location.href = "/login?error=session_expired";
+      }
     }
 
-    const existing = getSession();
-    if (!existing) {
-      window.location.href = "/login?error=session_expired";
-      return;
-    }
-    setSession(existing);
-  }, [searchParams, router]);
+    loadSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -63,7 +81,7 @@ export default function DashboardContent() {
       .then((r) => r.json())
       .then((d) => setNiftyToken(d.nearest?.token ?? null))
       .catch((err) =>
-        console.error("Failed to resolve Nifty future token", err)
+        console.error("Failed to resolve Nifty future token", err),
       );
   }, [session]);
 
@@ -90,7 +108,9 @@ export default function DashboardContent() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 bg-slate-800/80 px-6 py-4 rounded-xl border border-slate-700 shadow-xl">
           <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-300 font-medium text-sm">Authenticating Broker Session…</p>
+          <p className="text-slate-300 font-medium text-sm">
+            Authenticating Broker Session…
+          </p>
         </div>
       </div>
     );
@@ -104,7 +124,8 @@ export default function DashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/40 p-5 rounded-2xl border border-slate-800 backdrop-blur-sm shadow-sm">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            Welcome back, <span className="text-cyan-400 font-mono">{session?.uid}</span>
+            Welcome back,{" "}
+            <span className="text-cyan-400 font-mono">{session?.uid}</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Real-time Moneysukh WebSocket feeds for NFO / MCX contracts.
@@ -127,7 +148,9 @@ export default function DashboardContent() {
               Feed IST Time
             </span>
             <span className="text-xs font-mono text-slate-200">
-              {formatEpochToIST(Object.values(ticks).find((t: any) => t.ft)?.ft)}
+              {formatEpochToIST(
+                Object.values(ticks).find((t: any) => t.ft)?.ft,
+              )}
             </span>
           </div>
         </div>
@@ -141,7 +164,8 @@ export default function DashboardContent() {
             Active Market Watch
           </h2>
           <span className="text-xs text-slate-400 font-mono">
-            {tickEntries.length} Active Stream{tickEntries.length === 1 ? "" : "s"}
+            {tickEntries.length} Active Stream
+            {tickEntries.length === 1 ? "" : "s"}
           </span>
         </div>
 
@@ -152,21 +176,36 @@ export default function DashboardContent() {
                 <th className="p-3.5 font-semibold">Symbol</th>
                 <th className="p-3.5 font-semibold text-right">LTP / Time</th>
                 <th className="p-3.5 font-semibold text-right">Change %</th>
-                <th className="p-3.5 font-semibold text-right text-emerald-400">Bid (Buy)</th>
-                <th className="p-3.5 font-semibold text-right text-rose-400">Ask (Sell)</th>
+                <th className="p-3.5 font-semibold text-right text-emerald-400">
+                  Bid (Buy)
+                </th>
+                <th className="p-3.5 font-semibold text-right text-rose-400">
+                  Ask (Sell)
+                </th>
                 <th className="p-3.5 font-semibold text-right">Volume</th>
                 <th className="p-3.5 font-semibold text-right">Open</th>
-                <th className="p-3.5 font-semibold text-right text-emerald-400">High</th>
-                <th className="p-3.5 font-semibold text-right text-rose-400">Low</th>
+                <th className="p-3.5 font-semibold text-right text-emerald-400">
+                  High
+                </th>
+                <th className="p-3.5 font-semibold text-right text-rose-400">
+                  Low
+                </th>
                 <th className="p-3.5 font-semibold text-right">Prev Close</th>
-                <th className="p-3.5 font-semibold text-right text-sky-400">OI</th>
-                <th className="p-3.5 font-semibold text-center text-slate-500 font-sans">Token</th>
+                <th className="p-3.5 font-semibold text-right text-sky-400">
+                  OI
+                </th>
+                <th className="p-3.5 font-semibold text-center text-slate-500 font-sans">
+                  Token
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {tickEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-8 text-center text-slate-500 font-sans">
+                  <td
+                    colSpan={12}
+                    className="p-8 text-center text-slate-500 font-sans"
+                  >
                     Connecting to live ticker stream…
                   </td>
                 </tr>
@@ -177,8 +216,8 @@ export default function DashboardContent() {
                     changeValue > 0
                       ? "text-emerald-400 font-semibold"
                       : changeValue < 0
-                      ? "text-rose-400 font-semibold"
-                      : "text-slate-300";
+                        ? "text-rose-400 font-semibold"
+                        : "text-slate-300";
 
                   return (
                     <tr
@@ -186,7 +225,9 @@ export default function DashboardContent() {
                       className="hover:bg-slate-800/40 transition-colors"
                     >
                       <td className="p-3.5 font-sans font-bold text-white border-r border-slate-800">
-                        <span className="text-cyan-400 font-mono text-[11px] mr-1.5">[NFO]</span>
+                        <span className="text-cyan-400 font-mono text-[11px] mr-1.5">
+                          [NFO]
+                        </span>
                         {item.ts || "NIFTY FUT"}
                       </td>
 
@@ -198,7 +239,7 @@ export default function DashboardContent() {
                       </td>
 
                       <td className={`p-3.5 text-right ${changeColor}`}>
-                        {changeValue > 0 ? `+${item.pc}` : item.pc ?? "0.00"}%
+                        {changeValue > 0 ? `+${item.pc}` : (item.pc ?? "0.00")}%
                       </td>
 
                       <td className="p-3.5 text-right text-emerald-400">
@@ -244,4 +285,3 @@ export default function DashboardContent() {
     </div>
   );
 }
-
