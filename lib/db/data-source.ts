@@ -1,7 +1,9 @@
 // to fixe mongo db DNS SRV issue in windows
 import dns from "node:dns";
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+if (process.env.NODE_ENV === "production") {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
 
 // then existing code
 import "reflect-metadata";
@@ -22,6 +24,12 @@ declare global {
 }
 
 function createDataSource(): DataSource {
+  console.log("🔍 TypeORM entities:", {
+    User: User?.name,
+    BrokerToken: BrokerToken?.name,
+    PcrSnapshot: PcrSnapshot?.name,
+  });
+
   return new DataSource({
     type: "mongodb",
     url: process.env.MONGODB_URI,
@@ -37,6 +45,11 @@ async function initializeDataSource(ds: DataSource): Promise<DataSource> {
   if (!ds.isInitialized) {
     await ds.initialize();
   }
+
+  console.log(
+    "✅ TypeORM registered entities:",
+    ds.entityMetadatas.map((metadata) => metadata.name),
+  );
 
   /*
    * Create indexes only after the DataSource is initialized.

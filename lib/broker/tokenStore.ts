@@ -21,6 +21,11 @@ async function getBrokerTokenRepo(): Promise<MongoRepository<BrokerToken>> {
   const ds = await getDataSource();
   // Use the entity name string so TypeORM looks up by registered name,
   // not by class reference identity (which can differ across Turbopack chunks).
+  console.log(
+    "🔍 BrokerToken repo lookup. Registered entities:",
+    ds.entityMetadatas.map((metadata) => metadata.name),
+  );
+
   return ds.getMongoRepository<BrokerToken>("BrokerToken");
 }
 
