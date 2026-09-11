@@ -162,24 +162,52 @@ function getMonthlyFutures(futures: Instrument[]): Instrument[] {
 }
 
 /** Fetches a live LTP for one instrument via REST, used only to center the strike window. */
-async function fetchSpotLTP(
+// async function fetchSpotLTP(
+//   uid: string,
+//   accessToken: string,
+//   instrument: Instrument,
+// ): Promise<number> {
+//   try {
+//     const quote = await brokerClient.getQuotes(
+//       uid,
+//       instrument.exchange,
+//       instrument.token,
+//       accessToken,
+//     );
+//     return Number(quote?.lp || 0);
+//   } catch (err) {
+//     console.warn(
+//       `[PCR][spot] Failed to fetch quote for ${instrument.exchange}|${instrument.token}:`,
+//       (err as any)?.message || err,
+//     );
+//     return 0;
+//   }
+// }
+async function fetchLTP(
   uid: string,
   accessToken: string,
-  instrument: Instrument,
+  exchange: string,
+  token: string,
 ): Promise<number> {
   try {
     const quote = await brokerClient.getQuotes(
       uid,
-      instrument.exchange,
-      instrument.token,
+      exchange,
+      token,
       accessToken,
     );
-    return Number(quote?.lp || 0);
+
+    const ltp = Number(quote?.lp || 0);
+
+    console.log(`[PCR][REST-LTP] ${exchange}|${token} => ${ltp}`);
+
+    return ltp;
   } catch (err) {
     console.warn(
-      `[PCR][spot] Failed to fetch quote for ${instrument.exchange}|${instrument.token}:`,
+      `[PCR][REST-LTP] Failed for ${exchange}|${token}:`,
       (err as any)?.message || err,
     );
+
     return 0;
   }
 }
@@ -305,10 +333,16 @@ export async function loadTrackedInstruments(): Promise<void> {
     // strike window for every tracked expiry of this symbol.
     let spot = 0;
     if (brokerToken && allFutures.length > 0) {
-      spot = await fetchSpotLTP(
+      // spot = await fetchSpotLTP(
+      //   brokerToken.uid,
+      //   brokerToken.accessToken,
+      //   allFutures[0],
+      // );
+      spot = await fetchLTP(
         brokerToken.uid,
         brokerToken.accessToken,
-        allFutures[0],
+        allFutures[0].exchange,
+        allFutures[0].token,
       );
     }
     if (!spot) {
@@ -463,11 +497,52 @@ export async function computeAndStoreSnapshots(): Promise<void> {
       //   : 0;
 
       // get spot price for underlying future contract
+      // const spot = SPOT_TOKENS[symbol];
+
+      // const futuresLTP = spot
+      //   ? Number(getTick(spot.exchange, spot.token)?.lp || 0)
+      //   : 0;
       const spot = SPOT_TOKENS[symbol];
 
-      const futuresLTP = spot
-        ? Number(getTick(spot.exchange, spot.token)?.lp || 0)
-        : 0;
+      let futuresLTP = 0;
+
+      // 1. First try WebSocket tick cache
+      if (spot) {
+        futuresLTP = Number(getTick(spot.exchange, spot.token)?.lp || 0);
+
+        console.log(
+          `[PCR][WS-LTP] ${symbol}: ${spot.exchange}|${spot.token} => ${futuresLTP}`,
+        );
+      }
+
+      // 2. If WS cache doesn't have LTP, fetch it from REST
+      if (!futuresLTP && spot) {
+        const brokerToken = await getAnyValidBrokerToken();
+
+        if (brokerToken && spot) {
+          // futuresLTP = await fetchSpotLTP(
+          //   brokerToken.uid,
+          //   brokerToken.accessToken,
+          //   {
+          //     exchange: spot.exchange,
+          //     token: spot.token,
+          //   } as Instrument,
+          // );
+          futuresLTP = await fetchLTP(
+            brokerToken.uid,
+            brokerToken.accessToken,
+            spot.exchange,
+            spot.token,
+          );
+        } else {
+          console.warn(`[PCR][LTP] ${symbol}: no valid broker token available`);
+        }
+      }
+
+      // console.log(
+      //   `[PCR][SPOT] ${symbol}: token=${spot?.token} LTP=${futuresLTP}`,
+      // );
+      console.log(`[PCR][FINAL-LTP] ${symbol}: ${futuresLTP}`);
 
       const calculatedPCR = totalCallOI > 0 ? totalPutOI / totalCallOI : 0;
 
