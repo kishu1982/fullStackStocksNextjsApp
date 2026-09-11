@@ -72,5 +72,7 @@ export async function GET(req: NextRequest) {
   // return NextResponse.redirect(redirectUrl);
 
   // now work with only db token
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
+
+  return NextResponse.redirect(new URL("/dashboard", appUrl));
 }

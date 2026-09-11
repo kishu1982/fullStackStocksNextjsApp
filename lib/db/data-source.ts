@@ -1,9 +1,10 @@
 // to fixe mongo db DNS SRV issue in windows
 import dns from "node:dns";
 
-if (process.env.NODE_ENV === "production") {
-  dns.setServers(["8.8.8.8", "8.8.4.4"]);
-}
+// if (process.env.NODE_ENV === "production") {
+//   dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// }
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 // then existing code
 import "reflect-metadata";
@@ -35,6 +36,7 @@ function createDataSource(): DataSource {
     url: process.env.MONGODB_URI,
     database: process.env.MONGODB_DB,
 
+    // family: 4,
     synchronize: true,
 
     entities: [User, BrokerToken, PcrSnapshot],
