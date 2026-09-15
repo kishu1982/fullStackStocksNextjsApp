@@ -31,10 +31,25 @@ function createDataSource(): DataSource {
     PcrSnapshot: PcrSnapshot?.name,
   });
 
+  // dynamic database name
+  const baseDbName = process.env.MONGODB_DB;
+  const brokerClientId = process.env.BROKER_CLIENT_ID;
+
+  if (!baseDbName) {
+    throw new Error("MONGODB_DB is not defined");
+  }
+
+  if (!brokerClientId) {
+    throw new Error("BROKER_CLIENT_ID is not defined");
+  }
+
+  const databaseName = `${baseDbName}${brokerClientId}`;
+
   return new DataSource({
     type: "mongodb",
     url: process.env.MONGODB_URI,
-    database: process.env.MONGODB_DB,
+    // database: process.env.MONGODB_DB,
+    database: databaseName,
 
     // family: 4,
     synchronize: true,
