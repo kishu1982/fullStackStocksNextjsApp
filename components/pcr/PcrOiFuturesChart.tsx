@@ -221,7 +221,7 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
      * CALL OI — LEFT SCALE
      */
     const callOiSeries = chart.addSeries(LineSeries, {
-      color: "#ef4444",
+      color: "rgba(239, 68, 68, 0.65)", // was: "#ef4444"
 
       lineWidth: 2,
 
@@ -246,7 +246,7 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
      * PUT OI — LEFT SCALE (shares axis with Call OI, same units)
      */
     const putOiSeries = chart.addSeries(LineSeries, {
-      color: "#22c55e",
+      color: "rgba(34, 197, 94, 0.65)", // was: "#22c55e"
 
       lineWidth: 2,
 
@@ -271,7 +271,7 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
      * FUTURES — RIGHT SCALE
      */
     const futuresSeries = chart.addSeries(LineSeries, {
-      color: "#818cf8",
+      color: "rgba(129, 140, 248, 0.4)", // was: "#818cf8"
 
       lineWidth: 2,
 
@@ -665,17 +665,17 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
 
         <div className="flex items-center gap-4 text-[10px] font-mono">
           <div className="flex items-center gap-1.5 text-rose-400">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span className="w-2 h-2 rounded-full bg-rose-500/65" />
             Call OI
           </div>
 
           <div className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500/65" />
             Put OI
           </div>
 
           <div className="flex items-center gap-1.5 text-indigo-400">
-            <span className="w-2 h-2 rounded-full bg-indigo-400" />
+            <span className="w-2 h-2 rounded-full bg-indigo-400/30" />
             Futures
           </div>
         </div>
