@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
+import PcrOiFuturesChart from "@/components/pcr/PcrOiFuturesChart"; // for oi chart component
 
 // const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
 // const SYMBOLS = ["NIFTY", "SENSEX"];
@@ -195,6 +196,19 @@ export default function PcrDetailsPage() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
             {rows.length > 1 ? (
               <PcrHistoryChart data={rows} />
+            ) : (
+              <div className="p-8 text-center text-sm text-slate-500">
+                {loading
+                  ? "Loading chart data…"
+                  : "Waiting for more samples to plot a trend…"}
+              </div>
+            )}
+          </div>
+
+          {/* NEW: add this block right below */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mt-6">
+            {rows.length > 1 ? (
+              <PcrOiFuturesChart data={rows} />
             ) : (
               <div className="p-8 text-center text-sm text-slate-500">
                 {loading
