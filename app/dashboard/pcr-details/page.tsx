@@ -5,8 +5,8 @@ import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
 import PcrOiFuturesChart from "@/components/pcr/PcrOiFuturesChart"; // for oi chart component
 
 // const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
-// const SYMBOLS = ["NIFTY", "SENSEX"];
-const SYMBOLS = ["NIFTY"];
+const SYMBOLS = ["NIFTY", "SENSEX"];
+//const SYMBOLS = ["NIFTY"];
 
 interface PcrSnapshotRow {
   id: string;

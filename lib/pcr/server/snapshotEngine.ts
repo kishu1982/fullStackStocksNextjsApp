@@ -20,7 +20,7 @@ import { getAnyValidBrokerToken } from "@/lib/broker/tokenStore";
 export const TRACKED_UNDERLYINGS = [
   { symbol: "NIFTY", exchange: "NFO" },
   // { symbol: "BANKNIFTY", exchange: "NFO" },
-  // { symbol: "SENSEX", exchange: "BFO" },
+  //{ symbol: "SENSEX", exchange: "BFO" },
 ] as const;
 
 const SPOT_TOKENS: Record<string, { exchange: string; token: string }> = {
@@ -62,6 +62,10 @@ function toInstrument(row: any): Instrument {
 
 // const TRACKED_EXPIRY_WINDOW_DAYS = 30;
 const TRACKED_MONTHLY_EXPIRIES = 2;
+
+// How many of the nearest option expiries to track per symbol.
+// 1 = only the current weekly. Use 2 to also track the next one.
+const TRACKED_NEAREST_EXPIRIES = 2;
 
 // Strikes to keep on EACH side of the ATM strike, per expiry. This is the
 // main lever for staying under the broker's ~3000 subscribed-script cap:
@@ -118,6 +122,34 @@ function expiriesWithinWindow(expiries: string[], days: number): string[] {
       return t >= todayMs && t <= cutoffMs;
     })
     .sort((a, b) => parseExpiryDate(a) - parseExpiryDate(b));
+}
+
+// An expiry stays "live" until 15:30 IST on its day (= 10:00 UTC).
+function expiryEndMs(expiry: string): number {
+  const [dd, mmm, yyyy] = expiry.split("-");
+  const month = MONTHS[(mmm || "").toUpperCase()];
+  if (month === undefined) return Infinity;
+  return Date.UTC(Number(yyyy), month, Number(dd), 10, 0, 0);
+}
+
+/** Nearest not-yet-closed OPTIDX expiries for one symbol, soonest first. */
+function getNearestOptionExpiries(
+  symbolInstruments: Instrument[],
+  count: number,
+): string[] {
+  const now = Date.now();
+  const expiries = new Set(
+    symbolInstruments
+      .filter((i) => i.instrument === "OPTIDX" && i.expiry)
+      .map((i) => i.expiry as string),
+  );
+  return Array.from(expiries)
+    .filter((e) => {
+      const t = expiryEndMs(e);
+      return Number.isFinite(t) && t > now;
+    })
+    .sort((a, b) => expiryEndMs(a) - expiryEndMs(b))
+    .slice(0, count);
 }
 
 /**
@@ -320,24 +352,51 @@ export async function loadTrackedInstruments(): Promise<void> {
      * Instead, take the expiry dates from the monthly FUTIDX
      * contracts and use those dates to select the matching options.
      */
-    const trackedExpiries = trackedFutures
-      .map((f) => f.expiry)
-      .filter((e): e is string => Boolean(e));
 
-    console.log(
-      `[PCR][monthly] ${symbol}: monthly futures expiries =`,
-      trackedExpiries,
+    // to get expiry data based on monthly expiry which has F or fut in end
+    // const trackedExpiries = trackedFutures
+    //   .map((f) => f.expiry)
+    //   .filter((e): e is string => Boolean(e));
+
+    // console.log(
+    //   `[PCR][monthly] ${symbol}: monthly futures expiries =`,
+    //   trackedExpiries,
+    // );
+
+    // to get expiry data based on nearest option expiries nearest monthly expiry which does'nt has F or fut in end
+    const trackedExpiries = getNearestOptionExpiries(
+      symbolInstruments,
+      TRACKED_NEAREST_EXPIRIES,
     );
+
+    console.log(`[PCR][nearest] ${symbol}: option expiries =`, trackedExpiries);
 
     // Front-month future's LTP is used as a spot proxy to center the ATM
     // strike window for every tracked expiry of this symbol.
+    // let spot = 0;
+    // if (brokerToken && allFutures.length > 0) {
+    //   // spot = await fetchSpotLTP(
+    //   //   brokerToken.uid,
+    //   //   brokerToken.accessToken,
+    //   //   allFutures[0],
+    //   // );
+    //   spot = await fetchLTP(
+    //     brokerToken.uid,
+    //     brokerToken.accessToken,
+    //     allFutures[0].exchange,
+    //     allFutures[0].token,
+    //   );
+    // }
     let spot = 0;
-    if (brokerToken && allFutures.length > 0) {
-      // spot = await fetchSpotLTP(
-      //   brokerToken.uid,
-      //   brokerToken.accessToken,
-      //   allFutures[0],
-      // );
+    const spotRef = SPOT_TOKENS[symbol];
+    if (brokerToken && spotRef) {
+      spot = await fetchLTP(
+        brokerToken.uid,
+        brokerToken.accessToken,
+        spotRef.exchange,
+        spotRef.token,
+      );
+    } else if (brokerToken && allFutures.length > 0) {
       spot = await fetchLTP(
         brokerToken.uid,
         brokerToken.accessToken,
