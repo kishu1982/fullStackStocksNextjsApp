@@ -291,7 +291,7 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
       lastValueVisible: true,
       priceLineVisible: false,
 
-      title: "Futures",
+      // title: "Price",
     });
 
     callOiSeriesRef.current = callOiSeries;
