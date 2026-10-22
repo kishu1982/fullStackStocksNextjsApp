@@ -121,9 +121,45 @@ function getTrend(
 }
 
 //1-minute aggregation function
-function aggregateToOneMinute(rows: Row[]): Row[] {
+// function aggregateToOneMinute(rows: Row[]): Row[] {
+//   if (!rows.length) return [];
+
+//   const buckets = new Map<number, Row>();
+
+//   for (const row of rows) {
+//     const timestampMs = new Date(row.timestamp).getTime();
+
+//     if (!Number.isFinite(timestampMs)) continue;
+
+//     // Start of the minute.
+//     const minuteTimestampMs = Math.floor(timestampMs / 60_000) * 60_000;
+
+//     // Keep the LAST snapshot in each minute.
+//     buckets.set(minuteTimestampMs, row);
+//   }
+
+//   return Array.from(buckets.entries())
+//     .sort(([a], [b]) => a - b)
+//     .map(([minuteTimestampMs, row]) => ({
+//       ...row,
+
+//       // Give the aggregated point the exact beginning
+//       // of its 1-minute candle.
+//       timestamp: new Date(minuteTimestampMs).toISOString(),
+//     }));
+// }
+type Timeframe = "default" | "1m" | "3m";
+
+const TIMEFRAME_MINUTES: Record<Exclude<Timeframe, "default">, number> = {
+  "1m": 1,
+  "3m": 3,
+};
+
+// N-minute aggregation function
+function aggregateToMinutes(rows: Row[], minutes: number): Row[] {
   if (!rows.length) return [];
 
+  const bucketMs = minutes * 60_000;
   const buckets = new Map<number, Row>();
 
   for (const row of rows) {
@@ -131,24 +167,20 @@ function aggregateToOneMinute(rows: Row[]): Row[] {
 
     if (!Number.isFinite(timestampMs)) continue;
 
-    // Start of the minute.
-    const minuteTimestampMs = Math.floor(timestampMs / 60_000) * 60_000;
+    // Start of the N-minute bucket.
+    const bucketStartMs = Math.floor(timestampMs / bucketMs) * bucketMs;
 
-    // Keep the LAST snapshot in each minute.
-    buckets.set(minuteTimestampMs, row);
+    // Keep the LAST snapshot in each bucket.
+    buckets.set(bucketStartMs, row);
   }
 
   return Array.from(buckets.entries())
     .sort(([a], [b]) => a - b)
-    .map(([minuteTimestampMs, row]) => ({
+    .map(([bucketStartMs, row]) => ({
       ...row,
-
-      // Give the aggregated point the exact beginning
-      // of its 1-minute candle.
-      timestamp: new Date(minuteTimestampMs).toISOString(),
+      timestamp: new Date(bucketStartMs).toISOString(),
     }));
 }
-
 export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // const markersRef = useRef<ReturnType<typeof createSeriesMarkers> | null>(
@@ -169,7 +201,8 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
     timestamp: "",
   });
 
-  const [timeframe, setTimeframe] = useState<"default" | "1m">("default");
+  // const [timeframe, setTimeframe] = useState<"default" | "1m">("default");
+  const [timeframe, setTimeframe] = useState<Timeframe>("default");
   /*
    * ---------------------------------------------------------
    * CREATE CHART
@@ -538,8 +571,11 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
     }
 
     // 1  minute aggregation
+    // N-minute aggregation
     const chartData =
-      timeframe === "1m" ? aggregateToOneMinute(uniqueData) : uniqueData;
+      timeframe === "default"
+        ? uniqueData
+        : aggregateToMinutes(uniqueData, TIMEFRAME_MINUTES[timeframe]);
 
     dataRef.current = chartData;
 
@@ -815,11 +851,9 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
   // to update show last data with 1 minute data if zoom options selected like 30 60 120
   function getDisplayData(): Row[] {
-    if (timeframe === "1m") {
-      return aggregateToOneMinute(data);
-    }
+    if (timeframe === "default") return data;
 
-    return data;
+    return aggregateToMinutes(data, TIMEFRAME_MINUTES[timeframe]);
   }
 
   const showLast = (bars: number) => {
@@ -869,6 +903,17 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
         }`}
       >
         1 Minute
+      </button>
+      <button
+        type="button"
+        onClick={() => setTimeframe("3m")}
+        className={`px-3 py-1.5 rounded-md border text-xs font-mono ${
+          timeframe === "3m"
+            ? "bg-cyan-600 border-cyan-500 text-white"
+            : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+        }`}
+      >
+        3 Minute
       </button>
       {/* existing zoom controls */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -1029,9 +1074,9 @@ export default function PcrHistoryChart({ data }: PcrHistoryChartProps) {
 
         {/* <span>{data.length} samples</span> */}
         <span>
-          {timeframe === "1m"
-            ? `${aggregateToOneMinute(data).length} 1-minute samples`
-            : `${data.length} raw samples`}
+          {timeframe === "default"
+            ? `${data.length} raw samples`
+            : `${aggregateToMinutes(data, TIMEFRAME_MINUTES[timeframe]).length} ${TIMEFRAME_MINUTES[timeframe]}-minute samples`}
         </span>
       </div>
     </div>
