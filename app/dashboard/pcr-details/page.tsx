@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
 import PcrOiFuturesChart from "@/components/pcr/PcrOiFuturesChart"; // for oi chart component
 
 // const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
-const SYMBOLS = ["NIFTY", "SENSEX"];
-//const SYMBOLS = ["NIFTY"];
+//const SYMBOLS = ["NIFTY", "SENSEX"];
+const SYMBOLS = ["NIFTY"];
 
 interface PcrSnapshotRow {
   id: string;
@@ -19,7 +19,60 @@ interface PcrSnapshotRow {
   maxPainStrike: number;
   futuresLTP: number;
 }
+// for change in pe and call oi
+const IST_DATE_KEY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+}); // gives YYYY-MM-DD in IST
 
+interface OiChange {
+  openingTime: string;
+  callOpen: number;
+  callNow: number;
+  callChange: number;
+  callPct: number;
+  putOpen: number;
+  putNow: number;
+  putChange: number;
+  putPct: number;
+}
+
+function getOiChange(rows: PcrSnapshotRow[]): OiChange | null {
+  const sorted = rows
+    .filter((r) => !Number.isNaN(new Date(r.timestamp).getTime()))
+    .sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+
+  if (sorted.length === 0) return null;
+
+  const latest = sorted[sorted.length - 1];
+  const todayKey = IST_DATE_KEY.format(new Date(latest.timestamp));
+
+  // First snapshot received on the same IST day as the latest snapshot
+  const opening = sorted.find(
+    (r) => IST_DATE_KEY.format(new Date(r.timestamp)) === todayKey,
+  );
+
+  if (!opening) return null;
+
+  const callOpen = Number(opening.totalCallOI || 0);
+  const putOpen = Number(opening.totalPutOI || 0);
+  const callNow = Number(latest.totalCallOI || 0);
+  const putNow = Number(latest.totalPutOI || 0);
+
+  return {
+    openingTime: opening.timestamp,
+    callOpen,
+    callNow,
+    callChange: callNow - callOpen,
+    callPct: callOpen > 0 ? ((callNow - callOpen) / callOpen) * 100 : 0,
+    putOpen,
+    putNow,
+    putChange: putNow - putOpen,
+    putPct: putOpen > 0 ? ((putNow - putOpen) / putOpen) * 100 : 0,
+  };
+}
 export default function PcrDetailsPage() {
   const [symbol, setSymbol] = useState("NIFTY");
   const [expiries, setExpiries] = useState<string[]>([]);
@@ -106,6 +159,8 @@ export default function PcrDetailsPage() {
   }, [symbol, expiry]);
 
   const latest = rows[rows.length - 1];
+  // for call put oi change
+  const oiChange = useMemo(() => getOiChange(rows), [rows]);
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -204,7 +259,34 @@ export default function PcrDetailsPage() {
               </div>
             )}
           </div>
+          {/* CHANGE IN OI CARDS */}
+          {oiChange && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+              <OiChangeCard
+                label="Change in Call OI"
+                change={oiChange.callChange}
+                pct={oiChange.callPct}
+                open={oiChange.callOpen}
+                now={oiChange.callNow}
+                openingTime={oiChange.openingTime}
+                accent="rose"
+              />
+              <OiChangeCard
+                label="Change in Put OI"
+                change={oiChange.putChange}
+                pct={oiChange.putPct}
+                open={oiChange.putOpen}
+                now={oiChange.putNow}
+                openingTime={oiChange.openingTime}
+                accent="emerald"
+              />
+            </div>
+          )}
 
+          {/* NEW: add this block right below */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mt-6">
+            ...existing PcrOiFuturesChart block...
+          </div>
           {/* NEW: add this block right below */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mt-6">
             {rows.length > 1 ? (
@@ -263,6 +345,65 @@ function StatCard({
           {subText}
         </div>
       )}
+    </div>
+  );
+}
+
+function OiChangeCard({
+  label,
+  change,
+  pct,
+  open,
+  now,
+  openingTime,
+  accent,
+}: {
+  label: string;
+  change: number;
+  pct: number;
+  open: number;
+  now: number;
+  openingTime: string;
+  accent: "rose" | "emerald";
+}) {
+  const colors = {
+    rose: "text-rose-400 border-rose-800 bg-rose-950/40",
+    emerald: "text-emerald-400 border-emerald-800 bg-emerald-950/40",
+  };
+
+  const sign = change > 0 ? "+" : "";
+  const openTimeIST = new Date(openingTime).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${colors[accent]}`}>
+      <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+        {label}
+      </div>
+
+      <div className="flex items-baseline gap-2">
+        <div className="text-lg font-bold font-mono">
+          {sign}
+          {change.toLocaleString("en-IN")}
+        </div>
+
+        <div className="text-xs font-mono font-semibold">
+          {sign}
+          {pct.toFixed(2)}%
+        </div>
+      </div>
+
+      <div className="mt-2 flex justify-between text-[10px] font-mono text-slate-400">
+        <span>
+          Open ({openTimeIST}): {open.toLocaleString("en-IN")}
+        </span>
+        <span>Now: {now.toLocaleString("en-IN")}</span>
+      </div>
     </div>
   );
 }
