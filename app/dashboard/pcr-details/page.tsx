@@ -284,9 +284,7 @@ export default function PcrDetailsPage() {
           )}
 
           {/* NEW: add this block right below */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mt-6">
-            ...existing PcrOiFuturesChart block...
-          </div>
+
           {/* NEW: add this block right below */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mt-6">
             {rows.length > 1 ? (
