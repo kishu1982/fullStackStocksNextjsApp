@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
 import PcrOiFuturesChart from "@/components/pcr/PcrOiFuturesChart"; // for oi chart component
 
@@ -72,6 +72,57 @@ function getOiChange(rows: PcrSnapshotRow[]): OiChange | null {
     putChange: putNow - putOpen,
     putPct: putOpen > 0 ? ((putNow - putOpen) / putOpen) * 100 : 0,
   };
+}
+
+interface PcrRange {
+  high: number;
+  highTime: string;
+  low: number;
+  lowTime: string;
+}
+
+function getPcrDayRange(rows: PcrSnapshotRow[]): PcrRange | null {
+  const valid = rows.filter(
+    (r) =>
+      Number.isFinite(Number(r.pcr)) &&
+      !Number.isNaN(new Date(r.timestamp).getTime()),
+  );
+
+  if (valid.length === 0) return null;
+
+  // IST day of the most recent snapshot
+  const latestMs = Math.max(
+    ...valid.map((r) => new Date(r.timestamp).getTime()),
+  );
+  const todayKey = IST_DATE_KEY.format(new Date(latestMs));
+
+  let high: PcrSnapshotRow | null = null;
+  let low: PcrSnapshotRow | null = null;
+
+  for (const r of valid) {
+    if (IST_DATE_KEY.format(new Date(r.timestamp)) !== todayKey) continue;
+
+    if (!high || r.pcr > high.pcr) high = r;
+    if (!low || r.pcr < low.pcr) low = r;
+  }
+
+  if (!high || !low) return null;
+
+  return {
+    high: high.pcr,
+    highTime: high.timestamp,
+    low: low.pcr,
+    lowTime: low.timestamp,
+  };
+}
+
+function formatTimeIST(timestamp: string) {
+  return new Date(timestamp).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 export default function PcrDetailsPage() {
   const [symbol, setSymbol] = useState("NIFTY");
@@ -161,6 +212,8 @@ export default function PcrDetailsPage() {
   const latest = rows[rows.length - 1];
   // for call put oi change
   const oiChange = useMemo(() => getOiChange(rows), [rows]);
+  // getting high low  data
+  const pcrRange = useMemo(() => getPcrDayRange(rows), [rows]);
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -213,7 +266,7 @@ export default function PcrDetailsPage() {
 
       {expiry && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <StatCard
               label="PCR"
               value={latest ? latest.pcr.toFixed(5) : "—"}
@@ -246,6 +299,7 @@ export default function PcrDetailsPage() {
               }
               accent="slate"
             />
+            <PcrRangeCard range={pcrRange} />
           </div>
 
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
@@ -402,6 +456,42 @@ function OiChangeCard({
         </span>
         <span>Now: {now.toLocaleString("en-IN")}</span>
       </div>
+    </div>
+  );
+}
+{
+  /* <-- this closing brace belongs here, ends OiChangeCard */
+}
+
+function PcrRangeCard({ range }: { range: PcrRange | null }) {
+  return (
+    <div className="col-span-2 sm:col-span-1 rounded-xl border p-4 text-amber-400 border-amber-800 bg-amber-950/40">
+      <div className="text-[10px] uppercase tracking-wider text-slate-400 font-sans mb-1">
+        PCR Day High / Low
+      </div>
+
+      {range ? (
+        <div className="space-y-0.5 font-mono">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-bold text-emerald-400">
+              H {range.high.toFixed(4)}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              {formatTimeIST(range.highTime)}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-bold text-rose-400">
+              L {range.low.toFixed(4)}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              {formatTimeIST(range.lowTime)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="text-lg font-bold font-mono">—</div>
+      )}
     </div>
   );
 }
