@@ -79,6 +79,11 @@ interface PcrRange {
   highTime: string;
   low: number;
   lowTime: string;
+  open: number;
+  openTime: string;
+  now: number;
+  change: number; // points: now - open
+  changePct: number; // % change vs open
 }
 
 function getPcrDayRange(rows: PcrSnapshotRow[]): PcrRange | null {
@@ -98,21 +103,34 @@ function getPcrDayRange(rows: PcrSnapshotRow[]): PcrRange | null {
 
   let high: PcrSnapshotRow | null = null;
   let low: PcrSnapshotRow | null = null;
+  let first: PcrSnapshotRow | null = null; // first snapshot of the day
+  let last: PcrSnapshotRow | null = null; // latest snapshot of the day
+
+  const ms = (r: PcrSnapshotRow) => new Date(r.timestamp).getTime();
 
   for (const r of valid) {
     if (IST_DATE_KEY.format(new Date(r.timestamp)) !== todayKey) continue;
 
     if (!high || r.pcr > high.pcr) high = r;
     if (!low || r.pcr < low.pcr) low = r;
+    if (!first || ms(r) < ms(first)) first = r;
+    if (!last || ms(r) > ms(last)) last = r;
   }
 
-  if (!high || !low) return null;
+  if (!high || !low || !first || !last) return null;
+
+  const change = last.pcr - first.pcr;
 
   return {
     high: high.pcr,
     highTime: high.timestamp,
     low: low.pcr,
     lowTime: low.timestamp,
+    open: first.pcr,
+    openTime: first.timestamp,
+    now: last.pcr,
+    change,
+    changePct: first.pcr !== 0 ? (change / first.pcr) * 100 : 0,
   };
 }
 
@@ -464,10 +482,13 @@ function OiChangeCard({
 }
 
 function PcrRangeCard({ range }: { range: PcrRange | null }) {
+  const up = range ? range.change >= 0 : true;
+  const sign = range && range.change > 0 ? "+" : "";
+
   return (
     <div className="col-span-2 sm:col-span-1 rounded-xl border p-4 text-amber-400 border-amber-800 bg-amber-950/40">
       <div className="text-[10px] uppercase tracking-wider text-slate-400 font-sans mb-1">
-        PCR Day High / Low
+        PCR Day High / Low / Change
       </div>
 
       {range ? (
@@ -487,6 +508,31 @@ function PcrRangeCard({ range }: { range: PcrRange | null }) {
             <span className="text-[10px] text-slate-400">
               {formatTimeIST(range.lowTime)}
             </span>
+          </div>
+
+          {/* Change during the day */}
+          <div className="mt-1.5 pt-1.5 border-t border-slate-700/60">
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className={`text-sm font-bold ${
+                  up ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                {sign}
+                {range.change.toFixed(4)}
+              </span>
+              <span
+                className={`text-xs font-semibold ${
+                  up ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                {sign}
+                {range.changePct.toFixed(2)}%
+              </span>
+            </div>
+            <div className="text-[10px] text-slate-400">
+              Open {range.open.toFixed(4)} ({formatTimeIST(range.openTime)})
+            </div>
           </div>
         </div>
       ) : (
