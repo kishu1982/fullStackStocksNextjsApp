@@ -334,13 +334,6 @@ export default function PcrDetailsPage() {
             )}
           </CollapsibleChart>
 
-          {/* CHANGE IN OI CARDS (keep your existing block here) */}
-          {oiChange && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-              {/* ...your two OiChangeCard components unchanged... */}
-            </div>
-          )}
-
           {/* NEW: Change in OI chart, above the OI chart */}
           <CollapsibleChart
             title="Change in OI (today, from first tick)"
@@ -357,6 +350,31 @@ export default function PcrDetailsPage() {
             )}
           </CollapsibleChart>
 
+          {/* CHANGE IN OI CARDS (keep your existing block here) */}
+          {oiChange && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+              <OiChangeCard
+                label="Change in Call OI"
+                change={oiChange.callChange}
+                pct={oiChange.callPct}
+                open={oiChange.callOpen}
+                now={oiChange.callNow}
+                openingTime={oiChange.openingTime}
+                accent="rose"
+              />
+              <OiChangeCard
+                label="Change in Put OI"
+                change={oiChange.putChange}
+                pct={oiChange.putPct}
+                open={oiChange.putOpen}
+                now={oiChange.putNow}
+                openingTime={oiChange.openingTime}
+                accent="emerald"
+              />
+            </div>
+          )}
+
+          {/* OI call put chart with orignal oi chart */}
           <CollapsibleChart
             title="Call OI / Put OI vs Futures"
             className="mt-6"
