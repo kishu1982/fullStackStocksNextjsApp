@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
 import PcrOiFuturesChart from "@/components/pcr/PcrOiFuturesChart"; // for oi chart component
-
+import PcrOiChangeChart from "@/components/pcr/PcrOiChangeChart"; // for oi change chart component
 // const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
 //const SYMBOLS = ["NIFTY", "SENSEX"];
 const SYMBOLS = ["NIFTY"];
@@ -322,7 +322,7 @@ export default function PcrDetailsPage() {
             <PcrRangeCard range={pcrRange} />
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+          <CollapsibleChart title="PCR vs Futures">
             {rows.length > 1 ? (
               <PcrHistoryChart data={rows} />
             ) : (
@@ -332,35 +332,35 @@ export default function PcrDetailsPage() {
                   : "Waiting for more samples to plot a trend…"}
               </div>
             )}
-          </div>
-          {/* CHANGE IN OI CARDS */}
+          </CollapsibleChart>
+
+          {/* CHANGE IN OI CARDS (keep your existing block here) */}
           {oiChange && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-              <OiChangeCard
-                label="Change in Call OI"
-                change={oiChange.callChange}
-                pct={oiChange.callPct}
-                open={oiChange.callOpen}
-                now={oiChange.callNow}
-                openingTime={oiChange.openingTime}
-                accent="rose"
-              />
-              <OiChangeCard
-                label="Change in Put OI"
-                change={oiChange.putChange}
-                pct={oiChange.putPct}
-                open={oiChange.putOpen}
-                now={oiChange.putNow}
-                openingTime={oiChange.openingTime}
-                accent="emerald"
-              />
+              {/* ...your two OiChangeCard components unchanged... */}
             </div>
           )}
 
-          {/* NEW: add this block right below */}
+          {/* NEW: Change in OI chart, above the OI chart */}
+          <CollapsibleChart
+            title="Change in OI (today, from first tick)"
+            className="mt-6"
+          >
+            {rows.length > 1 ? (
+              <PcrOiChangeChart data={rows} />
+            ) : (
+              <div className="p-8 text-center text-sm text-slate-500">
+                {loading
+                  ? "Loading chart data…"
+                  : "Waiting for more samples to plot a trend…"}
+              </div>
+            )}
+          </CollapsibleChart>
 
-          {/* NEW: add this block right below */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mt-6">
+          <CollapsibleChart
+            title="Call OI / Put OI vs Futures"
+            className="mt-6"
+          >
             {rows.length > 1 ? (
               <PcrOiFuturesChart data={rows} />
             ) : (
@@ -370,7 +370,9 @@ export default function PcrDetailsPage() {
                   : "Waiting for more samples to plot a trend…"}
               </div>
             )}
-          </div>
+          </CollapsibleChart>
+
+          {/* charts components added end */}
 
           {latest && (
             <div className="text-[11px] text-slate-500 font-mono">
@@ -417,6 +419,49 @@ function StatCard({
           {subText}
         </div>
       )}
+    </div>
+  );
+}
+
+function CollapsibleChart({
+  title,
+  children,
+  defaultOpen = true,
+  className = "",
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div
+      className={`bg-slate-900/60 border border-slate-800 rounded-2xl p-4 ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between text-left"
+        aria-expanded={open}
+      >
+        <span className="text-sm font-semibold text-slate-200">{title}</span>
+
+        <svg
+          className={`w-4 h-4 text-slate-400 transition-transform ${
+            open ? "" : "rotate-180"
+          }`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          {/* arrow up when open, flips to arrow down when collapsed */}
+          <path d="M5.23 12.79a.75.75 0 001.06 0L10 9.06l3.71 3.73a.75.75 0 101.06-1.06l-4.24-4.27a.75.75 0 00-1.06 0L5.23 11.73a.75.75 0 000 1.06z" />
+        </svg>
+      </button>
+
+      {/* hidden (not unmounted) so the chart keeps its state and resizes when reopened */}
+      <div className={open ? "mt-3" : "hidden"}>{children}</div>
     </div>
   );
 }
