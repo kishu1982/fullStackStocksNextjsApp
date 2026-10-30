@@ -332,7 +332,7 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
       const containerHeight = container.clientHeight;
 
       const tooltipWidth = 220;
-      const tooltipHeight = 130;
+      const tooltipHeight = 155;
 
       let x = param.point.x + 15;
       let y = param.point.y + 15;
@@ -723,6 +723,37 @@ export default function PcrOiFuturesChart({ data }: PcrOiFuturesChartProps) {
                   {tooltip.totalPutOI?.toLocaleString("en-IN")}
                 </span>
               </div>
+              {/* DIFFERENCE ROW */}
+              {tooltip.totalCallOI !== undefined &&
+                tooltip.totalPutOI !== undefined && (
+                  <div className="flex justify-between gap-4 border-t border-slate-800 pt-1.5 mt-1.5">
+                    <span className="text-slate-400">Diff</span>
+
+                    {(() => {
+                      const diff = tooltip.totalPutOI - tooltip.totalCallOI;
+                      const abs = Math.abs(diff);
+
+                      if (diff === 0) {
+                        return (
+                          <span className="text-slate-200 font-bold">
+                            0 (Equal)
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <span
+                          className={`font-bold ${
+                            diff > 0 ? "text-emerald-400" : "text-rose-400"
+                          }`}
+                        >
+                          {diff > 0 ? "Put Hi OI " : "Call Hi OI "}
+                          {abs.toLocaleString("en-IN")}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                )}
             </div>
           </div>
         )}
