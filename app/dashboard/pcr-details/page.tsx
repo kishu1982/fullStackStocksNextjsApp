@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import PcrHistoryChart from "@/components/pcr/PcrHistoryChart";
 import PcrOiFuturesChart from "@/components/pcr/PcrOiFuturesChart"; // for oi chart component
 import PcrOiChangeChart from "@/components/pcr/PcrOiChangeChart"; // for oi change chart component
+import PcrChangeChart from "@/components/pcr/PcrChangeChart"; // change in pcr today
+
 // const SYMBOLS = ["NIFTY", "BANKNIFTY", "SENSEX"];
 //const SYMBOLS = ["NIFTY", "SENSEX"];
 const SYMBOLS = ["NIFTY"];
@@ -322,37 +324,9 @@ export default function PcrDetailsPage() {
             <PcrRangeCard range={pcrRange} />
           </div>
 
-          <CollapsibleChart title="PCR vs Futures">
-            {rows.length > 1 ? (
-              <PcrHistoryChart data={rows} />
-            ) : (
-              <div className="p-8 text-center text-sm text-slate-500">
-                {loading
-                  ? "Loading chart data…"
-                  : "Waiting for more samples to plot a trend…"}
-              </div>
-            )}
-          </CollapsibleChart>
-
-          {/* NEW: Change in OI chart, above the OI chart */}
-          <CollapsibleChart
-            title="Change in OI (today, from first tick)"
-            className="mt-6"
-          >
-            {rows.length > 1 ? (
-              <PcrOiChangeChart data={rows} />
-            ) : (
-              <div className="p-8 text-center text-sm text-slate-500">
-                {loading
-                  ? "Loading chart data…"
-                  : "Waiting for more samples to plot a trend…"}
-              </div>
-            )}
-          </CollapsibleChart>
-
-          {/* CHANGE IN OI CARDS (keep your existing block here) */}
+          {/* CHANGE IN OI CARDS (summary, above the charts) */}
           {oiChange && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <OiChangeCard
                 label="Change in Call OI"
                 change={oiChange.callChange}
@@ -374,22 +348,68 @@ export default function PcrDetailsPage() {
             </div>
           )}
 
-          {/* OI call put chart with orignal oi chart */}
-          <CollapsibleChart
-            title="Call OI / Put OI vs Futures"
-            className="mt-6"
-          >
-            {rows.length > 1 ? (
-              <PcrOiFuturesChart data={rows} />
-            ) : (
-              <div className="p-8 text-center text-sm text-slate-500">
-                {loading
-                  ? "Loading chart data…"
-                  : "Waiting for more samples to plot a trend…"}
-              </div>
-            )}
-          </CollapsibleChart>
+          {/* ROW 1: PCR (full data)  |  Change in PCR (today) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <CollapsibleChart title="PCR vs Futures" className="min-w-0">
+              {rows.length > 1 ? (
+                <PcrHistoryChart data={rows} />
+              ) : (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  {loading
+                    ? "Loading chart data…"
+                    : "Waiting for more samples to plot a trend…"}
+                </div>
+              )}
+            </CollapsibleChart>
 
+            <CollapsibleChart
+              title="Change in PCR vs Futures (today)"
+              className="min-w-0"
+            >
+              {rows.length > 1 ? (
+                <PcrChangeChart data={rows} />
+              ) : (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  {loading
+                    ? "Loading chart data…"
+                    : "Waiting for more samples to plot a trend…"}
+                </div>
+              )}
+            </CollapsibleChart>
+          </div>
+
+          {/* ROW 2: Call/Put OI (full data)  |  Change in OI (today) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <CollapsibleChart
+              title="Call OI / Put OI vs Futures"
+              className="min-w-0"
+            >
+              {rows.length > 1 ? (
+                <PcrOiFuturesChart data={rows} />
+              ) : (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  {loading
+                    ? "Loading chart data…"
+                    : "Waiting for more samples to plot a trend…"}
+                </div>
+              )}
+            </CollapsibleChart>
+
+            <CollapsibleChart
+              title="Change in OI (today, from first tick)"
+              className="min-w-0"
+            >
+              {rows.length > 1 ? (
+                <PcrOiChangeChart data={rows} />
+              ) : (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  {loading
+                    ? "Loading chart data…"
+                    : "Waiting for more samples to plot a trend…"}
+                </div>
+              )}
+            </CollapsibleChart>
+          </div>
           {/* charts components added end */}
 
           {latest && (
