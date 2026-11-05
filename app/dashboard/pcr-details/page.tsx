@@ -323,31 +323,6 @@ export default function PcrDetailsPage() {
             />
             <PcrRangeCard range={pcrRange} />
           </div>
-
-          {/* CHANGE IN OI CARDS (summary, above the charts) */}
-          {oiChange && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <OiChangeCard
-                label="Change in Call OI"
-                change={oiChange.callChange}
-                pct={oiChange.callPct}
-                open={oiChange.callOpen}
-                now={oiChange.callNow}
-                openingTime={oiChange.openingTime}
-                accent="rose"
-              />
-              <OiChangeCard
-                label="Change in Put OI"
-                change={oiChange.putChange}
-                pct={oiChange.putPct}
-                open={oiChange.putOpen}
-                now={oiChange.putNow}
-                openingTime={oiChange.openingTime}
-                accent="emerald"
-              />
-            </div>
-          )}
-
           {/* ROW 1: PCR (full data)  |  Change in PCR (today) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             <CollapsibleChart title="PCR vs Futures" className="min-w-0">
@@ -376,8 +351,31 @@ export default function PcrDetailsPage() {
                 </div>
               )}
             </CollapsibleChart>
-          </div>
-
+          </div>{" "}
+          {/* end of ROW 1 grid */}
+          {/* CHANGE IN OI CARDS (summary, above the charts) */}
+          {oiChange && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <OiChangeCard
+                label="Change in Call OI"
+                change={oiChange.callChange}
+                pct={oiChange.callPct}
+                open={oiChange.callOpen}
+                now={oiChange.callNow}
+                openingTime={oiChange.openingTime}
+                accent="rose"
+              />
+              <OiChangeCard
+                label="Change in Put OI"
+                change={oiChange.putChange}
+                pct={oiChange.putPct}
+                open={oiChange.putOpen}
+                now={oiChange.putNow}
+                openingTime={oiChange.openingTime}
+                accent="emerald"
+              />
+            </div>
+          )}
           {/* ROW 2: Call/Put OI (full data)  |  Change in OI (today) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             <CollapsibleChart
@@ -411,7 +409,6 @@ export default function PcrDetailsPage() {
             </CollapsibleChart>
           </div>
           {/* charts components added end */}
-
           {latest && (
             <div className="text-[11px] text-slate-500 font-mono">
               Last updated:{" "}
